@@ -278,6 +278,8 @@ See the [Builtin Catalog](./docs/builtin-catalog.md) for all workflows and perso
 | `takt watch` | Monitor the task queue and auto-execute pending tasks (resident process) |
 | `takt ui` | Open the experimental Viewer-first Web UI on `http://127.0.0.1:20525` |
 | `takt list` | Manage task branches (merge, retry, requeue, force-fail, instruct, delete) |
+| `takt resume task-name` | Immediately resume one failed queued task from its current step |
+| `takt restart task-name` | Immediately restart one failed or completed queued task from its first workflow step |
 | `takt #N` | Use a GitHub Issue as the initial input for a task |
 | `takt eject` | Copy builtin workflows/facets for customization |
 | `takt workflow init` | Create a new workflow scaffold |

@@ -194,7 +194,11 @@ vi.mock('../shared/i18n/index.js', () => ({
   }),
 }));
 
-import { requeueFailedTask, retryFailedTask } from '../features/tasks/list/taskRetryActions.js';
+import {
+  requeueFailedTask,
+  restartTaskFromBeginning,
+  retryFailedTask,
+} from '../features/tasks/list/taskRetryActions.js';
 import type { TaskListItem } from '../infra/task/types.js';
 import type { WorkflowConfig } from '../core/models/index.js';
 
@@ -484,6 +488,47 @@ beforeEach(() => {
   mockPrepareTaskSpecDirectory.mockReturnValue({
     taskDir: '/project/.takt/tasks/my-task',
     taskDirRelative: '.takt/tasks/my-task',
+  });
+});
+
+describe('restartTaskFromBeginning', () => {
+  it('should restart a completed task from the initial step without failure feedback', async () => {
+    const task = makeFailedTask({ kind: 'completed', failure: undefined });
+
+    const result = await restartTaskFromBeginning(task, '/project');
+
+    expect(result).toBe(true);
+    expectStartReExecutionCalledWith(
+      'my-task',
+      ['failed', 'completed'],
+      'retry',
+      {
+        retryNote: undefined,
+        taskDir: undefined,
+        sourceRunSlug: undefined,
+        restartPoint: defaultPlanRestartPoint,
+      },
+    );
+    expect(mockHeader).not.toHaveBeenCalled();
+    expect(mockExecuteAndCompleteTask).toHaveBeenCalled();
+  });
+
+  it('should include failure feedback when restarting a failed task', async () => {
+    const result = await restartTaskFromBeginning(makeFailedTask(), '/project');
+
+    expect(result).toBe(true);
+    expectStartReExecutionCalledWith(
+      'my-task',
+      ['failed', 'completed'],
+      'retry',
+      {
+        retryNote: autoRequeueNote,
+        taskDir: undefined,
+        sourceRunSlug: undefined,
+        restartPoint: defaultPlanRestartPoint,
+      },
+    );
+    expect(mockHeader).toHaveBeenCalled();
   });
 });
 

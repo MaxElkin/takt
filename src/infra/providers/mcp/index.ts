@@ -51,6 +51,7 @@ export function createMcpAdapter(provider: ProviderType): ProviderMcpAdapter {
       return createMockMcpAdapter();
     case 'pi':
     case 'deepseek-harness':
+    case 'antigravity':
       return createUnsupportedMcpAdapter(provider);
     default: {
       const exhaustive: never = provider;

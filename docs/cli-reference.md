@@ -536,11 +536,27 @@ takt telemetry disable
 
 ### takt resume
 
-Show an interactive menu (Requeue / Retry / Instruct / View reports / Cancel) for the most recent aborted or failed direct (one-shot) run in the current project directory; worktree/clone runs are not eligible, and a resumed execution writes its reports to a new run directory.
+With a task name, immediately resume that failed queued task from its saved checkpoint. If no valid checkpoint exists, TAKT resumes from the recorded failed step. The task name must exactly match its saved name.
+
+```bash
+takt resume ask-what-the-first-real-piece
+```
+
+Without a task name, show the existing interactive menu (Requeue / Retry / Instruct / View reports / Cancel) for the most recent aborted or failed direct (one-shot) run in the current project directory; worktree/clone runs are not eligible, and a resumed execution writes its reports to a new run directory.
 
 ```bash
 takt resume
 ```
+
+### takt restart
+
+Restart one failed or completed queued task immediately from the workflow's declared first step. The task is selected by its exact saved name, and TAKT reuses its existing worktree with fresh workflow execution state.
+
+```bash
+takt restart ask-what-the-first-real-piece
+```
+
+Tasks with `failed` or `completed` status are eligible. Shell quotes are needed only when a task name actually contains spaces or other shell-special characters.
 
 ### takt purge
 

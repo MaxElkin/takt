@@ -75,8 +75,18 @@ export interface PermissionRequest {
   toolName: string;
   input: Record<string, unknown>;
   suggestions?: PermissionUpdate[];
+  /**
+   * Whether allowing this single call is a real option.
+   *
+   * True by default. Providers that resume a dead turn rather than releasing a
+   * pending call (antigravity) set it false: there is no one call left to
+   * allow, so the narrowest grant they can honour is already in `suggestions`
+   * and a separate "allow once" row would silently do the same thing.
+   */
+  allowOnce?: boolean;
   blockedPath?: string;
   decisionReason?: string;
+  signal?: AbortSignal;
 }
 
 export type { PermissionResult, PermissionUpdate };

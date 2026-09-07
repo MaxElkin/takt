@@ -164,7 +164,11 @@ export async function selectAndExecuteTask(
       workflowIdentifier,
       projectCwd: cwd,
       agentOverrides,
-      interactiveUserInput: options?.interactiveUserInput === true,
+      // Left undefined when the caller has no opinion, so the bootstrap can
+      // derive it from whether the chosen workflow declares a human gate.
+      ...(options?.interactiveUserInput === undefined
+        ? {}
+        : { interactiveUserInput: options.interactiveUserInput }),
       interactiveMetadata: options?.interactiveMetadata,
       ...(reportDirName ? { reportDirName } : {}),
       ...(options?.providerProfileOverrides ? { providerProfileOverrides: options.providerProfileOverrides } : {}),

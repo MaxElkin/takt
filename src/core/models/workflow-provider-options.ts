@@ -131,6 +131,15 @@ export interface CursorProviderOptions {
   guards?: ProviderGuardOptions;
 }
 
+/**
+ * `agy` imposes its own print-mode deadline (`--print-timeout`, default 5m).
+ * `guards.callTimeoutMs` is TAKT's inactivity budget for the step, and the
+ * provider passes it on so agy's limit is never the shorter of the two.
+ */
+export interface AntigravityProviderOptions {
+  guards?: ProviderGuardOptions;
+}
+
 /** Configuration for the DeepSeek Harness Python SDK bridge. */
 export interface DeepSeekHarnessProviderOptions {
   pythonPath?: string;
@@ -165,6 +174,7 @@ export interface StepProviderOptions {
   claude?: ClaudeProviderOptions;
   claudeTerminal?: ClaudeTerminalProviderOptions;
   cursor?: CursorProviderOptions;
+  antigravity?: AntigravityProviderOptions;
   copilot?: CopilotProviderOptions;
   kiro?: KiroProviderOptions;
   pi?: PiProviderOptions;

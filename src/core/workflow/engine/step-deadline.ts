@@ -96,7 +96,9 @@ function resolveConfiguredWorkflowStepCallTimeoutMs(
               ? providerOptions?.kiro?.guards?.callTimeoutMs
               : provider === 'pi'
                 ? providerOptions?.pi?.guards?.callTimeoutMs
-                : undefined;
+                : provider === 'antigravity'
+                  ? providerOptions?.antigravity?.guards?.callTimeoutMs
+                  : undefined;
 }
 
 export function resolveWorkflowStepCallTimeoutMs(

@@ -8,6 +8,7 @@ import { CopilotProvider } from './copilot.js';
 import { KiroProvider } from './kiro.js';
 import { PiProvider } from './pi.js';
 import { DeepSeekHarnessProvider } from './deepseek-harness.js';
+import { AntigravityProvider } from './antigravity.js';
 import { MockProvider } from './mock.js';
 import type { Provider, ProviderType } from './types.js';
 
@@ -36,6 +37,7 @@ export class ProviderRegistry {
       kiro: new KiroProvider(),
       pi: new PiProvider(),
       'deepseek-harness': new DeepSeekHarnessProvider(),
+      antigravity: new AntigravityProvider(),
       mock: new MockProvider(),
     };
   }

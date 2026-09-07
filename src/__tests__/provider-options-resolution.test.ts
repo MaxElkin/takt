@@ -955,6 +955,7 @@ describe('providerOptionsContract', () => {
       'provider_options.kiro.agent',
       'provider_options.kiro.guards.call_timeout_ms',
       'provider_options.cursor.guards.call_timeout_ms',
+      'provider_options.antigravity.guards.call_timeout_ms',
       'provider_options.deepseek_harness.python_path',
       'provider_options.deepseek_harness.base_url',
       'provider_options.deepseek_harness.session_root',

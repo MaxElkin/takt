@@ -25,6 +25,8 @@ export {
 
 export {
   promptInput,
+  promptLine,
+  canReadPipedStdin,
   readMultilineFromStream,
   confirm,
 } from './confirm.js';

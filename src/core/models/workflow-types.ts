@@ -78,6 +78,11 @@ export interface WorkflowRule {
   returnValue?: string;
   appendix?: string;
   requiresUserInput?: boolean;
+  /**
+   * Ask the human before this transition is taken. TAKT asks directly, so no
+   * agent stands between the answer and the branch.
+   */
+  requiresApproval?: boolean;
   interactiveOnly?: boolean;
   commandGates?: 'required' | 'skip';
 }
@@ -320,6 +325,12 @@ interface AgentWorkflowStepBase extends WorkflowStepBase {
   overrides?: never;
   sessionKey?: string;
   requiresUserInput?: boolean;
+  /**
+   * Structured-output field holding the text meant for the human. When set,
+   * prompts show that field instead of the whole reply, so a step that routes
+   * on JSON does not make the human read it.
+   */
+  userPromptField?: string;
   persona?: string;
   allowGitCommit?: boolean;
   mcpServers?: Record<string, McpServerConfig>;
@@ -429,6 +440,7 @@ export interface SystemWorkflowStep extends WorkflowStepBase {
   overrides?: never;
   sessionKey?: never;
   requiresUserInput?: never;
+  userPromptField?: never;
   persona?: never;
   tags?: never;
   allowGitCommit?: never;
@@ -464,6 +476,7 @@ export interface WorkflowCallStep extends WorkflowStepBase {
   args?: Record<string, WorkflowCallArgValue>;
   sessionKey?: never;
   requiresUserInput?: never;
+  userPromptField?: never;
   persona?: never;
   tags?: never;
   allowGitCommit?: never;

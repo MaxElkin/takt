@@ -10,6 +10,7 @@ export function normalizeRule(rule: {
   return?: string;
   appendix?: string;
   requires_user_input?: boolean;
+  requires_approval?: boolean;
   interactive_only?: boolean;
   command_gates?: 'required' | 'skip';
 }): WorkflowRule {
@@ -24,6 +25,7 @@ export function normalizeRule(rule: {
     returnValue: rule.return,
     appendix: rule.appendix,
     requiresUserInput: rule.requires_user_input,
+    requiresApproval: rule.requires_approval,
     interactiveOnly: rule.interactive_only,
     ...(rule.command_gates === undefined ? {} : { commandGates: rule.command_gates }),
   };

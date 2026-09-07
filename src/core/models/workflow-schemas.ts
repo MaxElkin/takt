@@ -225,6 +225,7 @@ export const WorkflowRuleSchema = z.object({
   return: WorkflowResultLabelSchema.optional(),
   appendix: z.string().optional(),
   requires_user_input: z.boolean().optional(),
+  requires_approval: z.boolean().optional(),
   interactive_only: z.boolean().optional(),
   command_gates: z.enum(['required', 'skip']).optional(),
 }).strict();
@@ -698,6 +699,7 @@ function createWorkflowStepRawSchema(options?: { relaxWorkflowCallConditions?: b
     provider_options: removedWorkflowRuntimeField(WORKFLOW_RUNTIME_PROVIDER_MESSAGE),
     edit: z.boolean().optional(),
     requires_user_input: z.boolean().optional(),
+    user_prompt_field: z.string().min(1).optional(),
     instruction: WorkflowInstructionRefOrParamSchema.optional(),
     instruction_template: z.never().optional(),
     delay_before_ms: z.number().int().min(0).optional(),

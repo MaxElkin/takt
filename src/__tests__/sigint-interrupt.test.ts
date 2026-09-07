@@ -220,6 +220,7 @@ vi.mock('../shared/utils/index.js', async (importOriginal) => {
 vi.mock('../shared/prompt/index.js', () => ({
   selectOption: vi.fn(),
   promptInput: vi.fn(),
+  canReadPipedStdin: vi.fn(() => false),
 }));
 
 vi.mock('../shared/i18n/index.js', () => ({

@@ -115,11 +115,35 @@ program
 
 program
   .command('resume')
-  .description('Resume the latest failed or aborted direct run')
-  .action(async () => {
+  .description('Resume a named failed task, or the latest failed direct run')
+  .argument('[task-name]', 'Exact queued task name')
+  .action(async (taskName?: string) => {
     const { getCliExecutionContext } = await import('./initialization.js');
+    if (taskName !== undefined) {
+      const { resumeTask } = await import('../../features/tasks/restart/index.js');
+      await resumeTask(
+        getCliExecutionContext().cwd,
+        taskName,
+        resolveAgentOverrides(program),
+      );
+      return;
+    }
     const { resumeDirectRun } = await import('../../features/tasks/resume/index.js');
     await resumeDirectRun(getCliExecutionContext().cwd, resolveAgentOverrides(program));
+  });
+
+program
+  .command('restart')
+  .description('Restart a failed or completed queued task from its first step')
+  .argument('<task-name>', 'Exact task name')
+  .action(async (taskName: string) => {
+    const { getCliExecutionContext } = await import('./initialization.js');
+    const { restartTask } = await import('../../features/tasks/restart/index.js');
+    await restartTask(
+      getCliExecutionContext().cwd,
+      taskName,
+      resolveAgentOverrides(program),
+    );
   });
 
 program

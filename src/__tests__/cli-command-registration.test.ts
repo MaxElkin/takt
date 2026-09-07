@@ -18,6 +18,7 @@ describe('CLI command registration', () => {
       'add',
       'list',
       'resume',
+      'restart',
       'exec',
       'make',
       'ui',

@@ -6,6 +6,7 @@ import { createDefaultSystemStepServices } from '../../../infra/workflow/system/
 import { createDefaultStructuredOutputNormalizers } from '../../../infra/workflow/structured-output/followup-task-normalizer.js';
 import { AbortHandler } from './abortHandler.js';
 import { createIterationLimitHandler, createUserInputHandler } from './iterationLimitHandler.js';
+import { createPermissionHandler } from './permissionHandler.js';
 import {
   createWorkflowExecutionBootstrap,
   resolveWorkflowExecutionResumeLineage,
@@ -358,6 +359,11 @@ async function executeWorkflowInternal(
   const onUserInput = bootstrap.interactiveUserInput
     ? createUserInputHandler(bootstrap.out, bootstrap.displayRef)
     : undefined;
+  // Left undefined without a terminal, which is what keeps a headless run
+  // on the provider's own decision rather than blocking on stdin.
+  const onPermissionRequest = bootstrap.interactivePermissionPrompt
+    ? createPermissionHandler(bootstrap.out, bootstrap.displayRef)
+    : undefined;
   const handleProviderStream = (event: StreamEvent): void => {
     bootstrap.streamHandler(event);
     eventBridge?.emitProviderOutput(event);
@@ -400,6 +406,7 @@ async function executeWorkflowInternal(
           });
         },
         onUserInput,
+        onPermissionRequest,
         initialSessions: bootstrap.savedSessions,
         onSessionUpdate: bootstrap.sessionUpdateHandler,
         onIterationLimit,

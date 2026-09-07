@@ -815,6 +815,11 @@ export function denormalizeProviderOptions(
       },
     };
   }
+  if (providerOptions.antigravity?.guards?.callTimeoutMs !== undefined) {
+    raw.antigravity = {
+      guards: { call_timeout_ms: providerOptions.antigravity.guards.callTimeoutMs },
+    };
+  }
   if (providerOptions.deepseekHarness !== undefined) {
     const deepseekHarness = {
       ...(providerOptions.deepseekHarness.pythonPath !== undefined

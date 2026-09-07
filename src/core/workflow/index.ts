@@ -73,7 +73,9 @@ export type {
   StreamEvent,
   StreamCallback,
   PermissionHandler,
+  PermissionRequest,
   PermissionResult,
+  PermissionUpdate,
   AskUserQuestionHandler,
   ProviderType,
 } from './types.js';

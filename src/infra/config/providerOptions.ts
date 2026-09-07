@@ -85,6 +85,9 @@ type RawProviderOptions = {
   cursor?: {
     guards?: RawProviderGuardOptions;
   };
+  antigravity?: {
+    guards?: RawProviderGuardOptions;
+  };
   deepseek_harness?: {
     python_path?: string;
     base_url?: string;
@@ -470,6 +473,13 @@ export function normalizeProviderOptions(
         : {}),
     };
   }
+  if (options.antigravity?.guards !== undefined) {
+    result.antigravity = {
+      ...(options.antigravity.guards.call_timeout_ms !== undefined
+        ? { guards: { callTimeoutMs: options.antigravity.guards.call_timeout_ms } }
+        : {}),
+    };
+  }
   if (options.deepseek_harness !== undefined) {
     const deepseekOptionsPath = `${normalizationOptions.pathPrefix ?? 'provider_options'}.deepseek_harness`;
     const deepseekBaseUrlPath = `${deepseekOptionsPath}.base_url`;
@@ -752,6 +762,14 @@ export function mergeProviderOptions(
         ...result.cursor,
         ...(layer.cursor.guards !== undefined
           ? { guards: { ...result.cursor?.guards, ...layer.cursor.guards } }
+          : {}),
+      };
+    }
+    if (layer.antigravity) {
+      result.antigravity = {
+        ...result.antigravity,
+        ...(layer.antigravity.guards !== undefined
+          ? { guards: { ...result.antigravity?.guards, ...layer.antigravity.guards } }
           : {}),
       };
     }
@@ -1252,6 +1270,12 @@ export function resolveEffectiveProviderOptions(
     stepOptions?.cursor?.guards?.callTimeoutMs,
     resolveProviderOptionOrigin(originResolver, 'cursor.guards.callTimeoutMs', source),
   );
+  const antigravityCallTimeoutMs = selectProviderValue(
+    resolvedConfigOptions.antigravity?.guards?.callTimeoutMs,
+    personaOptions?.antigravity?.guards?.callTimeoutMs,
+    stepOptions?.antigravity?.guards?.callTimeoutMs,
+    resolveProviderOptionOrigin(originResolver, 'antigravity.guards.callTimeoutMs', source),
+  );
   const claudeTerminalBackend = selectProviderValue(
     resolvedConfigOptions.claudeTerminal?.backend,
     personaOptions?.claudeTerminal?.backend,
@@ -1398,6 +1422,9 @@ export function resolveEffectiveProviderOptions(
       : {}),
     ...(cursorCallTimeoutMs !== undefined
       ? { cursor: { guards: { callTimeoutMs: cursorCallTimeoutMs } } }
+      : {}),
+    ...(antigravityCallTimeoutMs !== undefined
+      ? { antigravity: { guards: { callTimeoutMs: antigravityCallTimeoutMs } } }
       : {}),
     ...(deepseekHarnessPythonPath !== undefined
       || deepseekHarnessBaseUrl !== undefined

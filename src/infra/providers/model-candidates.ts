@@ -18,6 +18,7 @@ const EXEC_MODEL_CANDIDATES: Partial<Record<ProviderType, readonly string[]>> = 
   // There is no provider-independent model name that is safe to suggest here.
   pi: [],
   'deepseek-harness': [DEEPSEEK_HARNESS_DEFAULT_MODEL],
+  antigravity: ['gemini-3.1-pro-high', 'gemini-3.8-flash-medium', 'claude-opus-4-6-thinking'],
   mock: ['mock-model'],
 };
 

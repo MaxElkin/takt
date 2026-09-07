@@ -163,6 +163,10 @@ const CursorProviderOptionsSchema = z.object({
   guards: ProviderGuardOptionsSchema.optional(),
 });
 
+const AntigravityProviderOptionsSchema = z.object({
+  guards: ProviderGuardOptionsSchema.optional(),
+});
+
 const DeepSeekHarnessProviderOptionsSchema = z.object({
   python_path: z.string().min(1).optional(),
   base_url: z.string().min(1).optional(),
@@ -191,6 +195,7 @@ export const StepProviderOptionsObjectSchema = z.object({
   claude: ClaudeProviderOptionsSchema.optional(),
   claude_terminal: ClaudeTerminalProviderOptionsSchema.optional(),
   cursor: CursorProviderOptionsSchema.optional(),
+  antigravity: AntigravityProviderOptionsSchema.optional(),
   copilot: CopilotProviderOptionsSchema.optional(),
   kiro: KiroProviderOptionsSchema.optional(),
   pi: PiProviderOptionsSchema.optional(),
@@ -205,6 +210,7 @@ const StrictStepProviderOptionsSchema = z.object({
   claude: StrictClaudeProviderOptionsSchema.optional(),
   claude_terminal: ClaudeTerminalProviderOptionsSchema.strict().optional(),
   cursor: CursorProviderOptionsSchema.strict().optional(),
+  antigravity: AntigravityProviderOptionsSchema.strict().optional(),
   copilot: CopilotProviderOptionsSchema.strict().optional(),
   kiro: KiroProviderOptionsSchema.strict().optional(),
   pi: PiProviderOptionsSchema.strict().optional(),

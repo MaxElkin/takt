@@ -459,6 +459,7 @@ export function normalizeStepFromRaw(
     description: step.description,
     sessionKey: step.session_key,
     requiresUserInput: step.requires_user_input,
+    userPromptField: step.user_prompt_field,
     kind: 'agent',
     persona: personaSpec,
     providerRoutingPersonaKey: normalizedRawPersona,

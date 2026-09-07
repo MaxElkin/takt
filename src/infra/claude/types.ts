@@ -50,8 +50,14 @@ export interface PermissionRequest {
   toolName: string;
   input: Record<string, unknown>;
   suggestions?: PermissionUpdate[];
+  /**
+   * Whether allowing this single call is a real option. True by default; see
+   * the same field on the core `PermissionRequest`.
+   */
+  allowOnce?: boolean;
   blockedPath?: string;
   decisionReason?: string;
+  signal?: AbortSignal;
 }
 
 /** Permission handler callback type */

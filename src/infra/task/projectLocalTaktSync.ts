@@ -6,7 +6,31 @@ import { createLogger, isRealPathInside } from '../../shared/utils/index.js';
 
 const log = createLogger('project-local-takt-sync');
 
-const SYNCED_TAKT_RESOURCES = ['config.yaml', 'workflows', 'facets', 'steps', 'quality-gates'] as const;
+/**
+ * Project-local `.takt` entries a worktree run reads but never writes.
+ *
+ * A worktree is a git checkout, so tracked files arrive on their own; this
+ * list is what makes the worktree see the *working tree* instead of the last
+ * commit. Anything a workflow can reference at load time belongs here, or an
+ * uncommitted edit to it is silently ignored by the run - and a brand new one
+ * fails to resolve at all.
+ *
+ * Deliberately absent: `tasks.yaml`, `runs`, and the other per-run state, which
+ * the worktree owns; and `exec/presets` and `takt-repertoire.yaml`, which are
+ * read by their own commands rather than during a run.
+ */
+const SYNCED_TAKT_RESOURCES = [
+  'config.yaml',
+  'runtime.yaml',
+  'workflows',
+  'facets',
+  'steps',
+  'schemas',
+  'companions',
+  'facet-pools',
+  'provider-options',
+  'quality-gates',
+] as const;
 const QUALITY_GATES_GENERATED_DIRS = new Set(['logs']);
 const TAKT_RUNS_GIT_EXCLUDE_PATTERN = '/.takt/runs/';
 

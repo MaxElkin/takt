@@ -12,6 +12,7 @@
     "rootDir": "."
   },
   "include": [
+    "src/__tests__/permissionHandler.test.ts",
     "src/__tests__/agent-usecases.test.ts",
     "src/__tests__/ai-caller-output-mode.test.ts",
     "src/__tests__/assistant-provider-parity.test.ts",

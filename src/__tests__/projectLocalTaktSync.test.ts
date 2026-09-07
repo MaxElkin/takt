@@ -53,6 +53,41 @@ describe('syncProjectLocalTaktForRetry', () => {
     );
   });
 
+  it('should sync every project-local resource a workflow can reference at load time', () => {
+    const projectDir = createTempDir('takt-sync-project-');
+    const worktreePath = createTempDir('takt-sync-worktree-');
+    mkdirSync(join(worktreePath, '.takt'), { recursive: true });
+    for (const directory of ['schemas', 'companions', 'facet-pools', 'provider-options']) {
+      mkdirSync(join(projectDir, '.takt', directory), { recursive: true });
+      writeFileSync(join(projectDir, '.takt', directory, 'sample.yaml'), `name: ${directory}\n`, 'utf-8');
+    }
+    writeFileSync(join(projectDir, '.takt', 'runtime.yaml'), 'providers: {}\n', 'utf-8');
+
+    syncProjectLocalTaktForRetry(projectDir, worktreePath);
+
+    for (const directory of ['schemas', 'companions', 'facet-pools', 'provider-options']) {
+      expect(readFileSync(join(worktreePath, '.takt', directory, 'sample.yaml'), 'utf-8')).toBe(`name: ${directory}\n`);
+    }
+    expect(readFileSync(join(worktreePath, '.takt', 'runtime.yaml'), 'utf-8')).toBe('providers: {}\n');
+  });
+
+  it('should overwrite a committed schema the worktree checked out with the project working copy', () => {
+    const projectDir = createTempDir('takt-sync-project-');
+    const worktreePath = createTempDir('takt-sync-worktree-');
+    mkdirSync(join(projectDir, '.takt', 'schemas'), { recursive: true });
+    mkdirSync(join(worktreePath, '.takt', 'schemas'), { recursive: true });
+    // What `git checkout` put there: the last committed version, plus a schema
+    // that has since been deleted from the project.
+    writeFileSync(join(worktreePath, '.takt', 'schemas', 'review.json'), '{"old":true}\n', 'utf-8');
+    writeFileSync(join(worktreePath, '.takt', 'schemas', 'dropped.json'), '{}\n', 'utf-8');
+    writeFileSync(join(projectDir, '.takt', 'schemas', 'review.json'), '{"new":true}\n', 'utf-8');
+
+    syncProjectLocalTaktForRetry(projectDir, worktreePath);
+
+    expect(readFileSync(join(worktreePath, '.takt', 'schemas', 'review.json'), 'utf-8')).toBe('{"new":true}\n');
+    expect(existsSync(join(worktreePath, '.takt', 'schemas', 'dropped.json'))).toBe(false);
+  });
+
   it('should create worktree .takt/.gitignore during retry sync', () => {
     const projectDir = createTempDir('takt-sync-project-');
     const worktreePath = createTempDir('takt-sync-worktree-');
