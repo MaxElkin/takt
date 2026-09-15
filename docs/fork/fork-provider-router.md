@@ -148,7 +148,7 @@ and the same abort signal must kill the child.
 
 The command runs with the user's own privileges and receives the task text on
 stdin. It is configured in the project's checked-in
-`../../../../../../../.takt/config.yaml`, so this is a code-execution surface
+`.takt/config.yaml`, so this is a code-execution surface
 that arrives through a pull request. TAKT
 already gates comparable surfaces behind explicit opt-in flags —
 `workflow_runtime_prepare.custom_scripts`, `workflow_command_gates.custom_scripts`,
