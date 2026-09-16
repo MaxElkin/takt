@@ -276,6 +276,7 @@ export function createWorkflowEngineServices(params: WorkflowEngineSetupParams):
     getCwd: params.getCwd,
     getProjectCwd: () => params.projectCwd,
     getReportDir: params.getReportDir,
+    getTaskArtifactsDir: () => params.options.taskArtifactsDir,
     getRunPaths: params.getRunPaths,
     getLanguage: () => params.options.language,
     getInteractive: () => params.options.interactive === true,

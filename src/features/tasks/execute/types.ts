@@ -294,6 +294,8 @@ export interface WorkflowExecutionOptions {
   currentTaskIssueNumber?: number;
   /** Task metadata used only for trace discovery attributes. */
   traceTaskMetadata?: WorkflowTraceTaskMetadata;
+  /** Fork: project-relative directory `{task_artifacts_dir}` resolves to. */
+  taskArtifactsDir?: string;
   /** Structured PR context used as prompt input. */
   prContext?: PullRequestContext;
   /** Coordinates optional loop-analysis publication with source-run PR handling. */

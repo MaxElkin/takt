@@ -55,7 +55,6 @@ import {
   resolveTaskRetryStartOwnership,
   type TaskRetryStartSelection,
 } from './taskRetryStartSelection.js';
-import { buildInitialWorkflowRestartPoint } from '../taskRetryStartPath.js';
 
 const log = createLogger('list-tasks');
 
@@ -370,129 +369,6 @@ export async function requeueFailedTask(
 }
 
 /**
- * Restart a failed or completed task from the workflow's initial step.
- */
-export async function restartTaskFromBeginning(
-  task: TaskListItem,
-  projectDir: string,
-  agentOverrides?: TaskExecutionOptions,
-): Promise<boolean> {
-  if (task.kind !== 'failed' && task.kind !== 'completed') {
-    throw new Error(`Task restart requires failed or completed task. received: ${task.kind}`);
-  }
-  const failure = task.kind === 'failed' ? requireFailedTaskFailure(task) : undefined;
-  const worktreePath = resolveWorktreePath(projectDir, task);
-  const workflow = task.data
-    ? resolveTaskWorkflowValue(task.data as Record<string, unknown>)
-    : undefined;
-  if (!workflow) {
-    throw new Error(`Task "${sanitizeTerminalText(task.name)}" is missing its workflow.`);
-  }
-  const workflowConfig = loadWorkflowByIdentifier(workflow, projectDir, { lookupCwd: worktreePath });
-  if (!workflowConfig) {
-    throw new Error(`Workflow "${sanitizeTerminalText(workflow)}" is unavailable for restart.`);
-  }
-  const restartPoint = buildInitialWorkflowRestartPoint(workflowConfig, {
-    projectCwd: projectDir,
-    lookupCwd: worktreePath,
-  });
-  const retryNote = failure === undefined
-    ? undefined
-    : appendRetryNote(
-        task.data?.retry_note,
-        buildAutoRequeueNote({
-          ...failure,
-          step: failure.step,
-        }),
-      );
-  if (failure !== undefined) {
-    displayFailureInfo(task, failure);
-  }
-  assertReusableWorktreePath(projectDir, worktreePath);
-  const runner = new TaskRunner(projectDir);
-  const taskInfo = runner.startReExecution(
-    task.name,
-    ['failed', 'completed'],
-    'retry',
-    {
-      retryNote,
-      taskDir: undefined,
-      sourceRunSlug: resolveRetryRunSlug(task, worktreePath) ?? undefined,
-      restartPoint,
-    },
-  );
-  const taskForExecution = prepareTaskForExecution(taskInfo, workflow);
-
-  log.info('Restarting task from beginning', {
-    name: task.name,
-    worktreePath,
-    restartPoint,
-  });
-
-  return executeAndCompleteTask(taskForExecution, runner, projectDir, agentOverrides);
-}
-
-/** Resume a failed task immediately from its saved checkpoint or failed step. */
-export async function resumeFailedTask(
-  task: TaskListItem,
-  projectDir: string,
-  agentOverrides?: TaskExecutionOptions,
-): Promise<boolean> {
-  const failure = requireFailedTaskFailure(task);
-  const worktreePath = resolveWorktreePath(projectDir, task);
-  const workflow = task.data
-    ? resolveTaskWorkflowValue(task.data as Record<string, unknown>)
-    : undefined;
-  if (!workflow) {
-    throw new Error(`Failed task "${sanitizeTerminalText(task.name)}" is missing its workflow.`);
-  }
-  const workflowConfig = loadWorkflowByIdentifier(workflow, projectDir, { lookupCwd: worktreePath });
-  if (!workflowConfig) {
-    throw new Error(`Workflow "${sanitizeTerminalText(workflow)}" is unavailable for resume.`);
-  }
-  const matchedSlug = resolveRetryRunSlug(task, worktreePath);
-  const runMeta = readRetryRunMeta(worktreePath, matchedSlug);
-  const resumePoint = resolveRetryResumePoint(task, runMeta);
-  const currentStep = resolveRetryDefaultStep(workflowConfig, failure, resumePoint);
-  const startStep = resumePoint === undefined
-    ? currentStep ?? undefined
-    : currentStep === workflowConfig.initialStep ? undefined : currentStep ?? undefined;
-  const retryNote = appendRetryNote(
-    task.data?.retry_note,
-    buildAutoRequeueNote({
-      ...failure,
-      step: resolveFailureStepForRequeueNote(failure, runMeta, resumePoint),
-    }),
-  );
-
-  displayFailureInfo(task, failure);
-  assertReusableWorktreePath(projectDir, worktreePath);
-  const runner = new TaskRunner(projectDir);
-  const taskInfo = runner.startReExecution(
-    task.name,
-    ['failed'],
-    'retry',
-    {
-      startStep,
-      retryNote,
-      resumePoint,
-      taskDir: undefined,
-      sourceRunSlug: matchedSlug ?? undefined,
-    },
-  );
-  const taskForExecution = prepareTaskForExecution(taskInfo, workflow);
-
-  log.info('Resuming failed task', {
-    name: task.name,
-    worktreePath,
-    startStep,
-    resumePoint,
-  });
-
-  return executeAndCompleteTask(taskForExecution, runner, projectDir, agentOverrides);
-}
-
-/**
  * Retry a failed task.
  *
  * Runs the retry conversation in the existing worktree, then directly
@@ -621,3 +497,15 @@ export async function retryFailedTask(
     cleanupInteractiveResultAttachments(retryResult);
   }
 }
+
+// Fork hook: helpers used by src/features/tasks/restart/restartActions.ts.
+export {
+  displayFailureInfo,
+  readRetryRunMeta,
+  requireFailedTaskFailure,
+  resolveFailureStepForRequeueNote,
+  resolveRetryDefaultStep,
+  resolveRetryResumePoint,
+  resolveRetryRunSlug,
+  resolveWorktreePath,
+};

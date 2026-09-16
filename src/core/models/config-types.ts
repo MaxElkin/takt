@@ -342,6 +342,16 @@ export interface ProjectConfig {
   providerRouting?: ProviderRoutingConfig;
   /** Branch name generation strategy */
   branchNameStrategy?: 'romaji' | 'ai';
+  /**
+   * Fork: project-relative parent of the per-task artifact directories a step
+   * reaches through `{task_artifacts_dir}`.
+   */
+  tasksArtifactsDir?: string;
+  /**
+   * Fork: task name the `takt task` subcommands act on when given `--current`
+   * instead of `--name`.
+   */
+  currentTask?: string;
   /** Minimal output mode */
   minimalOutput?: boolean;
   /** Number of tasks to run concurrently in takt run (1-10) */

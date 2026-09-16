@@ -142,15 +142,18 @@ Verifying which sandbox mode is in force needs a probe that discriminates.
 `workspace-write`'s default writable roots alongside `$TMPDIR`, and `read-only`
 refuses it.
 
-Codex's `execpolicy` rules (`.codex/rules/*.rules`) are a widening list, not a
-whitelist: an unlisted command still runs. Probed with `date`, which appears in
-no rule and exited 0 inside a trusted project. Rules only apply where the
+Codex's `execpolicy` rules (`.codex/rules/*.rules`) are not a whitelist: an
+unlisted command still runs. Probed with `date`, which appears in no rule and
+exited 0 inside a trusted project. A `prompt` rule needs an approval that
+`approvalPolicy: 'never'` cannot give, so under TAKT such a command is
+expected to be refused rather than asked about; that has not been probed. Rules only apply where the
 project is trusted (`trust_level = "trusted"`), which is also why a deny-rule
 probe run from an untrusted scratch directory proves nothing.
 
 ### Turn scope for `claude-sdk`
 
-`createCanUseTool` (`src/infra/claude/options-builder.ts`) holds a latch scoped
+`createTurnScopedCanUseTool` (`src/infra/claude/fork/turnScopedCanUseTool.ts`,
+returned by `createCanUseToolCallback` in `options-builder.ts`) holds a latch scoped
 to one provider call, which is one turn. A `cliArg` grant sets it, and every
 later `canUseTool` invocation in that call auto-allows without prompting. It is
 deliberately not carried into the next call: a new step is a new turn, and the
@@ -173,7 +176,8 @@ waiting in the prompt queue denies without drawing a stale menu.
 `TeamLeaderRunner.ts:1403` can run substeps simultaneously in one process
 against one stdin, so prompts are serialized through a promise queue.
 
-`workflowExecutionBootstrap.ts` computes `interactivePermissionPrompt` as
+`resolveInteractiveChannels` (`src/features/tasks/execute/fork/humanGate.ts`,
+called from `workflowExecutionBootstrap.ts`) computes `interactivePermissionPrompt` as
 `canPromptForUserInput() || canReadPipedStdin()`. Unlike a human gate this is
 not something a workflow declares, because any step can hit a permission
 request. With neither a terminal nor a pipe the handler is left undefined and

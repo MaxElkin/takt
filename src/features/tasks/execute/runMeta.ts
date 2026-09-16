@@ -31,11 +31,14 @@ export interface RunMetaManagerOptions {
   readonly operationJournalRunSlug?: string;
   readonly operationClaimToken?: string;
   readonly prContext?: PullRequestContext;
+  /** Fork: the queued task's `.takt/tasks/<slug>`, stamped into the run. */
+  readonly taskDir?: string;
 }
 
 type PersistedRunMeta = Omit<
   RunMeta,
   | 'resumePoint'
+  | 'taskDir'
   | 'sourceRunSlug'
   | 'resumeMode'
   | 'resumeArtifacts'
@@ -44,6 +47,7 @@ type PersistedRunMeta = Omit<
   | 'prContext'
 > & {
   resume_point?: WorkflowResumePoint;
+  task_dir?: string;
   source_run_slug?: string;
   resume_mode?: RunResumeSource['resumeMode'];
   resume_artifacts?: string;
@@ -55,6 +59,7 @@ type PersistedRunMeta = Omit<
 function serializeRunMeta(meta: RunMeta, updatedAt: string): PersistedRunMeta {
   const {
     resumePoint,
+    taskDir,
     sourceRunSlug,
     resumeMode,
     resumeArtifacts,
@@ -67,6 +72,7 @@ function serializeRunMeta(meta: RunMeta, updatedAt: string): PersistedRunMeta {
     ...baseMeta,
     updatedAt,
     ...(resumePoint ? { resume_point: parseWorkflowResumePoint(resumePoint) } : {}),
+    ...(taskDir ? { task_dir: taskDir } : {}),
     ...(sourceRunSlug ? { source_run_slug: sourceRunSlug } : {}),
     ...(resumeMode ? { resume_mode: resumeMode } : {}),
     ...(resumeArtifacts ? { resume_artifacts: resumeArtifacts } : {}),
@@ -136,6 +142,7 @@ export class RunMetaManager {
       logsDirectory: runPaths.logsRel,
       status: 'running',
       startTime: options?.startTime ?? new Date().toISOString(),
+      ...(options?.taskDir ? { taskDir: options.taskDir } : {}),
       ...(resumeSource ? {
         resumeMode: resumeSource.resumeMode,
         ...(resumeSource.sourceRunSlug ? { sourceRunSlug: resumeSource.sourceRunSlug } : {}),

@@ -29,6 +29,7 @@ export function buildTraceTaskMetadata(options: BuildTraceTaskMetadataOptions): 
   return compactTraceTaskMetadata({
     taskName: options.task?.name,
     taskSlug: options.taskSlug ?? options.task?.slug,
+    taskDir: options.task?.taskDir,
     taskSummary,
     taskSource,
     issueNumber,

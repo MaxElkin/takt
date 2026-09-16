@@ -20,7 +20,8 @@ the same route.
 
 Sites: `workflow-schemas.ts` (the rule schema is `.strict()`, so the field must
 be declared), `workflowRuleNormalizer.ts`, `transitions.ts` (rule →
-transition), and both transition paths in `WorkflowRunLoop.ts`.
+transition), and `src/core/workflow/engine/fork/transitionApproval.ts`, which
+both transition paths in `WorkflowRunLoop.ts` call.
 `validateUserInputRuntime` counts a mandatory approval rule as interactive, so
 such a workflow refuses to start unattended rather than silently skipping the
 gate. A rule marked `interactive_only` remains optional and is skipped during
@@ -36,7 +37,7 @@ A step that routes on structured output still has to say something readable.
 Without this, the prompt shows the whole reply, JSON and all, and the user has
 to find the question inside it.
 
-`humanFacingContent` takes `structuredOutput[field]`, defaulting the field name
+`humanFacingContent` (in `engine/fork/transitionApproval.ts`) takes `structuredOutput[field]`, defaulting the field name
 to `message`, and falls back to `response.content` when it is absent or empty.
 `structuredOutput` is only populated for a step that declared a schema, so the
 default costs a plain prose step nothing. A step whose readable text lives
@@ -49,15 +50,12 @@ This is applied at all three prompting sites in `WorkflowRunLoop.ts` — both
 
 `interactiveUserInput` used to default to `false` for queued tasks, which meant
 a queued workflow containing a human gate could not clear it. It is now
-derived:
+derived in `src/features/tasks/execute/fork/humanGate.ts`, which
+`workflowExecutionBootstrap.ts` calls through `resolveInteractiveChannels`:
 
 ```ts
-const interactiveUserInput = options.interactiveUserInput
-  ?? (workflowDeclaresHumanGate(workflowConfig, {
-    workflowCallResolver: options.workflowCallResolver,
-    projectCwd: options.projectCwd,
-    lookupCwd: cwd,
-  }) && canPromptForUserInput());
+interactiveUserInput: options.interactiveUserInput
+  ?? (workflowDeclaresHumanGate(workflowConfig, options) && canPromptForUserInput()),
 ```
 
 A caller with an opinion still wins — `selectAndExecute.ts` passes the option

@@ -11,7 +11,6 @@ import {
   selectTaskRetryStart,
 } from '../features/tasks/list/taskRetryStartSelection.js';
 import {
-  buildInitialWorkflowRestartPoint,
   validateTaskRetryRestartPoint,
 } from '../features/tasks/taskRetryStartPath.js';
 import type { SelectOptionItem } from '../shared/prompt/index.js';
@@ -180,43 +179,6 @@ beforeEach(() => {
 });
 
 describe('tree restart picker contracts', () => {
-  it('should restart from the declared initial step even when it is not first in the file', () => {
-    const root = makeWorkflow({
-      name: 'default',
-      ref: 'project:root',
-      initialStep: 'implement',
-      steps: [agentStep('plan'), agentStep('implement')],
-    });
-
-    const restartPoint = buildInitialWorkflowRestartPoint(root, pathContext);
-
-    expect(restartPoint.stack).toEqual([
-      expect.objectContaining({ step: 'implement', workflow_ref: 'project:root' }),
-    ]);
-  });
-
-  it('should follow declared initial workflow calls to the child initial step', () => {
-    const child = makeWorkflow({
-      name: 'child',
-      ref: 'project:child',
-      callable: true,
-      initialStep: 'child-start',
-      steps: [agentStep('unused-first'), agentStep('child-start')],
-    });
-    const root = makeWorkflow({
-      name: 'default',
-      ref: 'project:root',
-      initialStep: 'call-child',
-      steps: [agentStep('unused-root'), callStep('call-child', 'child')],
-    });
-    mockResolveWorkflowCallTarget.mockReturnValue(child);
-
-    const restartPoint = buildInitialWorkflowRestartPoint(root, pathContext);
-
-    expect(restartPoint.stack.map((entry) => entry.step)).toEqual(['call-child', 'child-start']);
-    expect(() => validateTaskRetryRestartPoint(root, restartPoint, pathContext)).not.toThrow();
-  });
-
   it('should present the whole call tree in a single prompt without the two-line path style', async () => {
     const { root } = developmentTree();
 

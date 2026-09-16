@@ -19,6 +19,7 @@ import type {
   NdjsonParallelMetadata,
 } from '../../../infra/fs/index.js';
 import type { PromptLogRecord } from './promptLog.js';
+import { phasePromptFields } from './fork/phasePromptFields.js';
 import type {
   AgentResponse,
   WorkflowResumePointEntry,
@@ -184,9 +185,7 @@ export function buildPhaseStartRecord(
       workflowStack,
       step.parallel !== undefined,
     ),
-    instruction: sanitizeText(instruction),
-    systemPrompt: sanitizeText(promptParts.systemPrompt),
-    userInstruction: sanitizeText(promptParts.userInstruction),
+    ...phasePromptFields(instruction, promptParts, sanitizeText),
     ...(iteration != null ? { iteration } : {}),
   };
 }

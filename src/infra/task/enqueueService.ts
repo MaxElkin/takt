@@ -18,6 +18,8 @@ export interface SaveEnqueuedTaskFileOptions extends Record<string, unknown> {
   shouldPublishBranchToOrigin?: boolean;
   prNumber?: number;
   contextPrNumber?: number;
+  /** Use this slug as-is instead of summarizing the task content into one. */
+  slug?: string;
 }
 
 export interface PreparedTaskSpecDirectory {

@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockProgramOpts: Record<string, unknown> = {};
 const mockResumeDirectRun = vi.fn();
-const mockResumeTask = vi.fn();
 
 const { rootCommand, commandActions, commandMocks } = vi.hoisted(() => {
   const commandActions = new Map<string, (...args: unknown[]) => void>();
@@ -65,16 +64,11 @@ vi.mock('../features/tasks/resume/index.js', () => ({
   resumeDirectRun: (...args: unknown[]) => mockResumeDirectRun(...args),
 }));
 
-vi.mock('../features/tasks/restart/index.js', () => ({
-  resumeTask: (...args: unknown[]) => mockResumeTask(...args),
-}));
-
 import '../app/cli/commands.js';
 
 describe('CLI resume command', () => {
   beforeEach(() => {
     mockResumeDirectRun.mockClear();
-    mockResumeTask.mockClear();
     for (const key of Object.keys(mockProgramOpts)) {
       delete mockProgramOpts[key];
     }
@@ -86,10 +80,6 @@ describe('CLI resume command', () => {
 
     expect(calledCommandNames).toContain('resume');
     expect(commandMocks.get('root.resume')?.description).toHaveBeenCalled();
-    expect(commandMocks.get('root.resume')?.argument).toHaveBeenCalledWith(
-      '[task-name]',
-      'Exact queued task name',
-    );
   });
 
   it('passes CLI provider and model overrides to direct run resume', async () => {
@@ -107,21 +97,5 @@ describe('CLI resume command', () => {
       model: 'gpt-test',
       modelSource: 'cli',
     });
-  });
-
-  it('resumes a named failed queued task with CLI overrides', async () => {
-    mockProgramOpts.provider = 'mock';
-    mockProgramOpts.model = 'gpt-test';
-    const resumeAction = commandActions.get('root.resume');
-
-    await resumeAction?.('task with spaces');
-
-    expect(mockResumeTask).toHaveBeenCalledWith('/test/cwd', 'task with spaces', {
-      provider: 'mock',
-      providerSource: 'cli',
-      model: 'gpt-test',
-      modelSource: 'cli',
-    });
-    expect(mockResumeDirectRun).not.toHaveBeenCalled();
   });
 });

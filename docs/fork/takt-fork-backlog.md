@@ -30,6 +30,15 @@ The provider's own list is in the
 [Antigravity provider specification](antigravity-provider.md#todo). What is
 left, in order:
 
+- **Keep the repository's `ask` and `deny` grants when the gate comes down.**
+  Unattended `edit`, an approved resume, and `full` pass
+  `--dangerously-skip-permissions`, which skips every grant. A repository that
+  asks for `git push` through its grants gets no prompt there, and the sandbox
+  does not stop network writes. Candidates: run unattended `edit` without the
+  flag and report grant denials as step errors, or resume an approved turn
+  with only the approved command granted, if `agy` can take a per-call grant.
+  The [mode table](antigravity-provider.md#--sandbox-alone-does-not-help-with-the-bypass-it-does)
+  records the current mapping.
 - **Coverage against a real binary.** Everything is verified against a mocked
   child process, so the argv mapping and the resume loop are checked only by
   hand — including the fix where an approved resume used to drop `--sandbox`,

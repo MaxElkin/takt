@@ -48,7 +48,7 @@ export async function saveEnqueuedTaskFile(
   throwIfTaskSaveAborted(abortSignal);
   const runner = new TaskRunner(cwd);
   const config = buildValidatedTaskConfig(options);
-  const slug = await summarizeTaskName(taskContent, { cwd });
+  const slug = options?.slug ?? await summarizeTaskName(taskContent, { cwd });
   throwIfTaskSaveAborted(abortSignal);
   const summary = firstLine(taskContent);
   const preparedSpec = prepareTaskSpec(cwd, taskContent);

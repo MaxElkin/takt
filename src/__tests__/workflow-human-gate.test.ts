@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { WorkflowCallStep, WorkflowConfig, WorkflowStep } from '../core/models/index.js';
-import { workflowDeclaresHumanGate } from '../features/tasks/execute/workflowExecutionBootstrap.js';
+import { workflowDeclaresHumanGate } from '../features/tasks/execute/fork/humanGate.js';
 import { makeRule } from './test-helpers.js';
 
 function workflow(name: string, steps: WorkflowStep[]): WorkflowConfig {

@@ -11,6 +11,7 @@ import type {
   RunResumeSource,
 } from '../../../core/workflow/run/run-meta.js';
 import { generateExecutionReportDir } from '../../../core/workflow/run/run-slug.js';
+import { pruneSupersededRunBundles } from './fork/pruneSupersededRunBundles.js';
 import {
   generateReportDir,
   isValidReportDirName,
@@ -134,6 +135,9 @@ class WorkflowRunLifecycleAdapter {
       task: input.task,
       requestedRunSlug: input.requestedRunSlug,
     });
+    // Fork: this attempt supersedes the chain behind it; their bundles are
+    // rebuilt per run and never read again.
+    pruneSupersededRunBundles(runPaths, input.resumeSource?.sourceRunSlug);
     const abortController = new AbortController();
     const terminalPublisher = createFileWorkflowRunTerminalPublisher({
       runPaths,

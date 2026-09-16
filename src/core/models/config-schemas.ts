@@ -125,6 +125,12 @@ const ProjectConfigObjectBaseSchema = z.object({
   persona_providers: z.record(z.string(), PersonaProviderReferenceSchema).optional(),
   provider_routing: ProviderRoutingSchema,
   branch_name_strategy: z.enum(['romaji', 'ai']).optional(),
+  // Fork: parent directory of the per-task artifact directories a step reaches
+  // through `{task_artifacts_dir}`. See docs/fork/takt-fork-commands.md.
+  tasks_artifacts_dir: z.string().optional(),
+  // Fork: task name the `takt task` subcommands use when given `--current`
+  // instead of `--name`. See docs/fork/takt-fork-commands.md.
+  current_task: z.string().optional(),
   minimal_output: z.boolean().optional(),
   provider_options: StepProviderOptionsSchema,
   rate_limit_fallback: RateLimitFallbackSchema.optional(),

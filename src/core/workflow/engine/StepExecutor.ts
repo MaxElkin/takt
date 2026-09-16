@@ -174,6 +174,8 @@ export interface StepExecutorDeps {
   readonly getCwd: () => string;
   readonly getProjectCwd: () => string;
   readonly getReportDir: () => string;
+  /** Fork: project-relative artifact directory of the queued task, if any. */
+  readonly getTaskArtifactsDir?: () => string | undefined;
   readonly getRunPaths: () => RunPaths;
   readonly getFailureDir: () => string;
   readonly getLanguage: () => Language | undefined;
@@ -1254,6 +1256,7 @@ export class StepExecutor {
       previousOutput: includePreviousResponse ? getPreviousOutput(state) : undefined,
       reportDir,
       reportsRootDir,
+      taskArtifactsDir: this.deps.getTaskArtifactsDir?.(),
       resumeReportConsumerKey,
       language: this.deps.getLanguage(),
       interactive: this.deps.getInteractive(),

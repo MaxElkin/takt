@@ -1,4 +1,4 @@
-import type { WorkflowConfig } from '../../../core/models/index.js';
+import type { ProjectConfig, WorkflowConfig } from '../../../core/models/index.js';
 import type {
   ProviderPermissionProfile,
   ProviderPermissionProfiles,
@@ -24,6 +24,7 @@ import { createLogger } from '../../../shared/utils/index.js';
 import { sanitizeTerminalText } from '../../../shared/utils/text.js';
 import type { ExecuteTaskOptions, WorkflowExecutionOptions, WorkflowExecutionResult } from './types.js';
 import { buildTraceTaskMetadata } from './traceTaskMetadata.js';
+import { resolveTaskArtifactsDir } from '../../../core/workflow/instruction/fork/taskArtifactsDir.js';
 
 const log = createLogger('task');
 
@@ -177,6 +178,13 @@ export async function executeTaskWorkflow(
   });
 
   const config = resolveWorkflowConfigValues(projectCwd, ['language', 'personaProviders', 'providerRouting', 'providerProfiles']);
+  const projectConfig = loadProjectConfig(projectCwd);
+  // Fork: {task_artifacts_dir} is resolved here, at the only boundary that has
+  // both the project config and the queued task's name.
+  const taskArtifactsDir = resolveTaskArtifactsDir(
+    projectConfig.tasksArtifactsDir,
+    traceTaskMetadata?.taskName,
+  );
   const providerOptions = resolveProviderOptionsWithTrace(projectCwd);
   return workflowExecutor(workflowConfig, task, cwd, {
     projectCwd,
@@ -187,7 +195,7 @@ export async function executeTaskWorkflow(
     model: agentOverrides?.model,
     modelSource: agentOverrides?.modelSource,
     autoStrategy: agentOverrides?.autoStrategy,
-    reportFallbackProvider: resolveReportFallbackProviderModel(projectCwd),
+    reportFallbackProvider: resolveReportFallbackProviderModel(projectConfig),
     selectorProviderOverrides: agentOverrides === undefined
       ? undefined
       : {
@@ -224,6 +232,7 @@ export async function executeTaskWorkflow(
     initialIterationOverride,
     currentTaskIssueNumber,
     traceTaskMetadata,
+    ...(taskArtifactsDir === undefined ? {} : { taskArtifactsDir }),
     ...(prContext ? { prContext } : {}),
     ...(loopAnalysisPublication === undefined
       ? {}
@@ -234,8 +243,9 @@ export async function executeTaskWorkflow(
   });
 }
 
-function resolveReportFallbackProviderModel(projectCwd: string): StepProviderInfo | undefined {
-  const project = loadProjectConfig(projectCwd);
+// Fork: takes the already-loaded project config instead of loading it again,
+// so `{task_artifacts_dir}` needs no second read of the same file.
+function resolveReportFallbackProviderModel(project: ProjectConfig): StepProviderInfo | undefined {
   const global = loadGlobalConfig();
   const resolved = resolveAssistantScopedProviderModelFromConfig({
     local: {

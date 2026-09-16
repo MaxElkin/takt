@@ -465,6 +465,9 @@ async function executeWorkflowInternal(
         initialIteration: options.initialIterationOverride,
         currentTask: resolveCurrentTaskContext(options, bootstrap.runSlug),
         traceTaskMetadata: options.traceTaskMetadata,
+        // Fork: carries `{task_artifacts_dir}` to the engine. This mapping is
+        // explicit field by field, so an option left out here reaches no step.
+        taskArtifactsDir: options.taskArtifactsDir,
         prContext,
         phase1ProcessSafetyByStep,
         systemStepServicesFactory: (serviceOptions) => createDefaultSystemStepServices({

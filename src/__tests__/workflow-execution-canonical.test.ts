@@ -352,6 +352,35 @@ describe('workflow execution canonical entrypoints', () => {
     );
   });
 
+  // Fork: the engine options are mapped field by field, so an option this
+  // mapping leaves out reaches no step — and a conditional spread at the call
+  // site type-checks while doing nothing. See docs/fork/takt-fork-commands.md.
+  it('should forward taskArtifactsDir through executeWorkflow into WorkflowEngine', async () => {
+    const { executeWorkflow } = await import('../features/tasks/execute/workflowExecution.js');
+    const config: WorkflowConfig = {
+      name: 'default',
+      description: '',
+      initialStep: 'plan',
+      maxSteps: 3,
+      steps: [{ name: 'plan', instruction: 'Plan the work' }],
+    };
+
+    await expect(
+      executeWorkflow(config, 'task', '/tmp/project', {
+        projectCwd: '/tmp/project',
+        provider: 'mock' as never,
+        taskArtifactsDir: 'docs/project/tasks/kek',
+      }),
+    ).rejects.toBeInstanceOf(Error);
+
+    expect(mockWorkflowEngine).toHaveBeenCalledWith(
+      expect.anything(),
+      '/tmp/project',
+      'task',
+      expect.objectContaining({ taskArtifactsDir: 'docs/project/tasks/kek' }),
+    );
+  });
+
   it('should preserve an explicit selector provider through bootstrap into WorkflowEngine', async () => {
     const { executeWorkflow } = await import('../features/tasks/execute/workflowExecution.js');
     const config: WorkflowConfig = {

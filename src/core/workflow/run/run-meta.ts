@@ -37,6 +37,13 @@ export interface RunMeta {
   task: string;
   workflow: string;
   runSlug: string;
+  /**
+   * Fork: `.takt/tasks/<slug>` of the queued task this run belongs to, so a
+   * run can be matched to its task without walking the resume chain. Absent
+   * for a run with no queued task (interactive, `takt exec`) and for a task
+   * whose text is carried by `content` or `content_file`.
+   */
+  taskDir?: string;
   runRoot: string;
   reportDirectory: string;
   contextDirectory: string;
@@ -76,6 +83,7 @@ export function isResumableRunStatus(
 interface RawRunMeta extends Omit<
   RunMeta,
   | 'resumePoint'
+  | 'taskDir'
   | 'sourceRunSlug'
   | 'resumeMode'
   | 'resumeArtifacts'
@@ -85,6 +93,7 @@ interface RawRunMeta extends Omit<
 > {
   resumePoint?: unknown;
   resume_point?: unknown;
+  task_dir?: string;
   source_run_slug?: string;
   resume_mode?: RunResumeMode;
   resume_artifacts?: string;
@@ -100,6 +109,7 @@ function normalizeRunMeta(value: unknown): RunMeta {
   const {
     resumePoint: camelResumePoint,
     resume_point: persistedResumePoint,
+    task_dir: persistedTaskDir,
     source_run_slug: persistedSourceRunSlug,
     resume_mode: persistedResumeMode,
     resume_artifacts: persistedResumeArtifacts,
@@ -115,6 +125,7 @@ function normalizeRunMeta(value: unknown): RunMeta {
   return {
     ...baseMeta,
     ...(resumePoint === undefined ? {} : { resumePoint }),
+    ...(persistedTaskDir === undefined ? {} : { taskDir: persistedTaskDir }),
     ...(persistedSourceRunSlug === undefined
       ? {}
       : { sourceRunSlug: persistedSourceRunSlug }),
@@ -204,6 +215,7 @@ function parseRawRunMeta(value: unknown): RawRunMeta {
     ...(raw.resume_point === undefined
       ? {}
       : { resume_point: parseWorkflowResumePoint(raw.resume_point) }),
+    ...(optionalString(raw.task_dir, 'task_dir')),
     ...(optionalString(raw.source_run_slug, 'source_run_slug')),
     ...(raw.resume_mode === undefined
       ? {}

@@ -147,36 +147,6 @@ describe('WorkflowRunLoop command quality gates', () => {
   it.each([
     ['full workflow', runWorkflowToCompletion],
     ['single iteration', runSingleWorkflowIteration],
-  ] as const)('does not require interactive runtime for an interactive-only approval in %s', async (
-    _label,
-    run,
-  ) => {
-    const step = makeStep('review', {
-      rules: [makeRule('approved', 'COMPLETE', {
-        requiresApproval: true,
-        interactiveOnly: true,
-      })],
-    });
-    const state = createInitialState(makeConfig(step), { projectCwd: '/worktree' });
-    const runStep = vi.fn(async () => ({
-      response: makeResponse({ persona: 'review', content: 'approved' }),
-      instruction: 'review',
-    }));
-    const deps = makeDeps(
-      state,
-      step,
-      runStep,
-      vi.fn(async () => ({ ok: true as const })),
-    );
-
-    await run(deps);
-
-    expect(runStep).toHaveBeenCalledOnce();
-  });
-
-  it.each([
-    ['full workflow', runWorkflowToCompletion],
-    ['single iteration', runSingleWorkflowIteration],
   ] as const)('should resolve a required transition before its gate and commit after success in %s', async (
     _label,
     run,

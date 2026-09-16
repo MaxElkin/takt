@@ -47,6 +47,11 @@ export interface InstructionContext {
   /** Report directory path */
   reportDir?: string;
   /**
+   * Fork: project-relative artifact directory of the queued task, rendered by
+   * `{task_artifacts_dir}`. Absent for a run with no queued task.
+   */
+  taskArtifactsDir?: string;
+  /**
    * run の reports ルート（namespace なし）。workflow_call の子の {report:X} が
    * 親成果物へ read-only フォールバックするために engine から明示的に渡す。
    */

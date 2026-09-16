@@ -126,9 +126,8 @@ as **prose on stdout** rather than as JSON or on stderr.
 ### What still needs approval
 
 Reading is not permission-gated once the project is bound. Shell commands are.
-`~/.gemini/config/config.json` stores allow rules under
-`userSettings.globalPermissionGrants.allow`. Headless runs honour those grants;
-they simply cannot prompt for anything missing.
+Headless runs honour the harness's grants; they simply cannot prompt for
+anything missing.
 
 One sharp edge: matching is by prefix over the whole command line, not per
 program, so a compound line may fail even when one of its parts is allowed.
@@ -136,12 +135,16 @@ With `command(ls)` granted, `pwd && ls -la` is still denied — the line begins
 with `pwd`. Pipes have the same effect: `echo hi | tee f` is denied under
 `command(tee)`.
 
-Grants live in two places. `userSettings.globalPermissionGrants.allow` in
+Grants live in two places. `userSettings.globalPermissionGrants` in
 `~/.gemini/config/config.json` applies everywhere; each project JSON under
-`~/.gemini/config/projects/` carries its own `permissionGrants.allow`. Both
-take the forms `command(x)`, `unsandboxed(x)` and `write_file(/path)`. Print
-mode reads them and never writes them, which is the correct division: grants
-belong to the harness that owns them.
+`~/.gemini/config/projects/` carries its own `permissionGrants.permissionGrants`.
+Both hold `allow`, `ask` and `deny` lists, in the forms `command(x)`,
+`unsandboxed(x)`, `write_file(/path)`, `read_file(/path)`, `read_url(x)` and
+`mcp(server/tool)`. A command runs sandboxed unless the model requests the
+sandbox bypass for it; `unsandboxed(x)` lifts the prompt for that request, and
+`command(x)` in `allow` does not. Print mode reads the grants and never writes
+them, which is the correct division: grants belong to the harness that owns
+them.
 
 ### `agy` cannot ask, by design
 
@@ -189,7 +192,7 @@ So `agy` does now reach the human, but by a route the other two do not need:
 TAKT asks *after* the turn died and resumes a new one. What follows is that
 loop and what it costs.
 
-TAKT should not write `config.json` — grants belong to the harness that owns
+TAKT should not write the grant files — grants belong to the harness that owns
 them, exactly as `claude-sdk`'s chosen grants are persisted by Claude's own
 settings and never by TAKT.
 
@@ -199,7 +202,7 @@ The difference is the channel, not the wiring. The Claude Agent SDK spawns its
 CLI with `--output-format stream-json --verbose --input-format stream-json`,
 and over that stdin the CLI sends a `control_request` of subtype
 `can_use_tool` carrying `permission_suggestions`; the parent answers with a
-`control_response`. `options-builder.ts:66` sets that `canUseTool` callback
+`control_response`. `options-builder.ts:65` sets that `canUseTool` callback
 from `onPermissionRequest`, and the suggestions TAKT renders as numbered
 choices are the ones arriving on the request.
 
@@ -311,6 +314,13 @@ Without an interactive handler, `edit` falls back to `--dangerously-skip-permiss
 paired with `--sandbox` so unattended runs rely on sandbox containment rather than
 failing immediately on un-pregranted commands (matching Codex's `workspace-write`).
 
+`--dangerously-skip-permissions` skips every grant, not only the missing ones:
+`ask` and `deny` grants stop applying too. So under the unattended `edit` row,
+an approved resume, and `full`, a repository that asks for `git push` or
+`rm -rf` through its grants gets no prompt, and only the sandbox bounds the
+command. A push goes over the network, which the sandbox does not stop. This
+is listed in the [fork backlog](takt-fork-backlog.md#antigravity-past-proof-of-concept).
+
 ## Deadlines
 
 TAKT's step deadline is an *inactivity* deadline, not a wall clock. It arms a
@@ -380,9 +390,8 @@ Roughly in the order they would block real use.
 1. **Tool allowlist.** `agy` has no `--allowed-tools`. Until that changes the
    provider must stay out of `ALLOWED_TOOLS_PROVIDERS`, and `edit: false` is a
    request in the prompt rather than an enforced restriction. `--sandbox` and
-   `--mode plan` are the only coarse substitutes. Command grants in
-   `config.json` restrict shells but say nothing about `write_file` or the
-   browser tools.
+   `--mode plan` are the only coarse substitutes. The harness's grants
+   restrict commands, file writes and URLs, but not per step.
 2. **Coverage beyond unit tests.** The parser and client suites
    (`src/__tests__/antigravity-stream.test.ts`,
    `src/__tests__/antigravity-client.test.ts`) cover the stream shapes, the

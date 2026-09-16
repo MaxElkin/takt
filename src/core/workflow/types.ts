@@ -688,6 +688,12 @@ export interface WorkflowEngineOptions {
   };
   /** Task metadata used only for trace discovery attributes. */
   traceTaskMetadata?: WorkflowTraceTaskMetadata;
+  /**
+   * Fork: project-relative artifact directory of the queued task, rendered by
+   * `{task_artifacts_dir}`. Resolved at the execution boundary from
+   * `tasks_artifacts_dir` and the task name; absent when either is missing.
+   */
+  taskArtifactsDir?: string;
   /** Structured PR context used for all Phase 1 instructions. */
   prContext?: PullRequestContext;
   phase1ProcessSafetyByStep?: Record<string, { protectedParentRunPid: number }>;
@@ -708,6 +714,8 @@ export interface WorkflowEngineOptions {
 export interface WorkflowTraceTaskMetadata {
   taskName?: string | undefined;
   taskSlug?: string | undefined;
+  /** Fork: `.takt/tasks/<slug>` of the queued task, stamped into run meta. */
+  taskDir?: string | undefined;
   taskSummary?: string | undefined;
   taskSource?: 'issue' | 'pr_review' | 'manual' | undefined;
   issueNumber?: number | undefined;

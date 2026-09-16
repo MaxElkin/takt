@@ -58,6 +58,11 @@ const PROJECT_TRACKED_KEYS = [
   'provider_routing.tags',
   'provider_routing.steps',
   'branch_name_strategy',
+  // Fork: parent of the per-task artifact directories `{task_artifacts_dir}`
+  // resolves under.
+  'tasks_artifacts_dir',
+  // Fork: task the `takt task` subcommands act on with `--current`.
+  'current_task',
   'minimal_output',
   'task_poll_interval_ms',
   'interactive_preview_steps',

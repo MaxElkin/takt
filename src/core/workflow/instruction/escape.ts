@@ -14,6 +14,7 @@ import { resolveWorkflowStateReference } from '../state/workflow-state-access.js
 import { REPORT_REFERENCE_PATTERN, resolveReportReference } from './report-reference.js';
 import { renderTaskReviewScope } from '../review-scope.js';
 import { escapeTemplateChars } from 'faceted-prompting';
+import { replaceTaskArtifactsDirPlaceholder } from './fork/taskArtifactsDir.js';
 
 export { escapeTemplateChars } from 'faceted-prompting';
 
@@ -91,6 +92,9 @@ export function replaceTemplatePlaceholders(
     /\{review_scope\}/g,
     () => renderTaskReviewScope(context.reviewScope, context.language ?? 'en'),
   );
+
+  // Fork: replace {task_artifacts_dir}
+  result = replaceTaskArtifactsDirPlaceholder(result, context.taskArtifactsDir);
 
   // Replace {report_dir}
   if (context.reportDir) {

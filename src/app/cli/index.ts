@@ -13,6 +13,7 @@ import { installImmediateSigintExit } from './immediateSigintExit.js';
 
 import { program, runPreActionHook, scheduleUpdateCheck } from './program.js';
 import './commands.js';
+import './fork/index.js';
 
 (async () => {
   const args = process.argv.slice(2);

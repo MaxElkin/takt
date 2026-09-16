@@ -11,6 +11,7 @@ import {
   type TaskAttachmentManifest,
 } from '../attachments.js';
 import { readTaskSpecFile } from '../taskSpecFile.js';
+import { buildBlankOrderTaskInstruction, isBlankTaskOrder } from '../fork/taskPrompt.js';
 
 export interface ResolvedTaskSpec {
   readonly runSlug: string;
@@ -71,7 +72,11 @@ export function resolveTaskSpecForExecution(
     runSlug: runPaths.slug,
     sourceTaskDir,
     attachmentManifest,
-    taskPrompt: buildTaskInstruction(runPaths.contextTaskRel, runPaths.contextTaskOrderRel),
+    // Fork: a blank order is the absence of a request, so it must not be
+    // announced as the primary spec. See fork/taskPrompt.ts.
+    taskPrompt: isBlankTaskOrder(orderContent)
+      ? buildBlankOrderTaskInstruction()
+      : buildTaskInstruction(runPaths.contextTaskRel, runPaths.contextTaskOrderRel),
     orderContent,
     stagedOrderContent,
   });
