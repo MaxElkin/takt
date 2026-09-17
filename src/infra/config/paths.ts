@@ -144,6 +144,11 @@ export function getProjectWorkflowsDir(projectDir: string): string {
   return join(getProjectConfigDir(projectDir), 'workflows');
 }
 
+/** Get project-wide rules directory (.takt/rules in project) */
+export function getProjectRulesDir(projectDir: string): string {
+  return join(getProjectConfigDir(projectDir), 'rules');
+}
+
 /** Get project schemas directory (.takt/schemas in project) */
 export function getProjectSchemasDir(projectDir: string): string {
   return join(getProjectConfigDir(projectDir), 'schemas');

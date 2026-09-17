@@ -1,10 +1,16 @@
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
-import { getBuiltinWorkflowsDir, getGlobalWorkflowsDir, getProjectWorkflowsDir } from '../paths.js';
+import {
+  getBuiltinWorkflowsDir,
+  getGlobalWorkflowsDir,
+  getProjectRulesDir,
+  getProjectWorkflowsDir,
+  isPathSafe,
+} from '../paths.js';
 import type { Language, WorkflowWideRule } from '../../../core/models/index.js';
 import { extractReportReferences } from '../../../core/workflow/instruction/report-reference.js';
 import { withWorkflowConfigErrorPath } from '../../../core/workflow/workflow-config-error.js';
 import { readRegularFileNoFollow } from '../../../shared/utils/private-file.js';
-import { assertPathSegmentsAreSafe, lstatIfExists } from '../../../shared/utils/pathBoundary.js';
+import { assertPathSegmentsAreSafe, isPathInside, lstatIfExists } from '../../../shared/utils/pathBoundary.js';
 
 type RawWorkflowWideRule = string | {
   readonly ref: string;
@@ -35,22 +41,20 @@ function containsRequiredOutputSection(content: string): boolean {
 }
 
 function assertSafeRuleReference(ref: string, index: number): void {
+  const segments = ref.split('/');
   if (
     ref.length === 0
     || isAbsolute(ref)
-    || ref.includes('/')
     || ref.includes('\\')
-    || ref === '.'
-    || ref === '..'
+    || segments.some((segment) => segment.length === 0 || segment === '.' || segment === '..')
   ) {
     throw new Error(`Invalid workflow-wide rule reference at all_steps.rules[${index}]: "${ref}"`);
   }
 }
 
 function ruleFilePath(root: string, ref: string): string {
-  const rulesDir = join(root, 'rules');
-  const filePath = join(rulesDir, `${ref}.md`);
-  const rootPath = resolve(rulesDir);
+  const filePath = join(root, `${ref}.md`);
+  const rootPath = resolve(root);
   const relativePath = relative(rootPath, resolve(filePath));
   if (relativePath.startsWith(`..${sep}`) || isAbsolute(relativePath)) {
     throw new Error(`Workflow-wide rule reference escapes the rules directory: "${ref}"`);
@@ -58,10 +62,37 @@ function ruleFilePath(root: string, ref: string): string {
   return filePath;
 }
 
-function readRuleFile(root: string, filePath: string): string | undefined {
+function readRuleFile(
+  root: string,
+  filePath: string,
+  options?: { projectRoot?: string },
+): string | undefined {
   const rootStats = lstatIfExists(root);
   if (rootStats !== null && (rootStats.isSymbolicLink() || !rootStats.isDirectory())) {
     throw new Error(`Workflow-wide rule root must be a directory and must not be a symlink: ${root}`);
+  }
+
+  const resolvedRoot = resolve(root);
+  if (!isPathInside(resolvedRoot, filePath)) {
+    throw new Error(`Workflow-wide rule must stay inside its candidate root: ${filePath}`);
+  }
+
+  // Project-owned rule categories may be symlinked to another directory in
+  // the same project. The lexical candidate-root boundary above still
+  // applies; this check only widens the real-path boundary for that case.
+  if (options?.projectRoot !== undefined) {
+    if (!isPathSafe(options.projectRoot, resolvedRoot)) {
+      throw new Error(`Workflow-wide rule root must stay inside the project: ${root}`);
+    }
+    if (!isPathSafe(options.projectRoot, filePath)) {
+      throw new Error(`Workflow-wide rule must stay inside the project: ${filePath}`);
+    }
+    const stats = lstatIfExists(filePath);
+    if (stats === null) return undefined;
+    if (stats.isSymbolicLink() || !stats.isFile()) {
+      throw new Error(`Workflow-wide rule must be a regular file and must not be a symlink: ${filePath}`);
+    }
+    return readRegularFileNoFollow(filePath, stats).toString('utf-8');
   }
 
   const stats = assertPathSegmentsAreSafe(
@@ -101,16 +132,23 @@ function assertAllowedRuleContent(content: string, filePath: string, index: numb
   }
 }
 
+interface RuleLookupRoot {
+  readonly path: string;
+  readonly allowProjectSymlinks: boolean;
+}
+
 function resolveRuleFile(
   ref: string,
-  roots: readonly string[],
+  roots: readonly RuleLookupRoot[],
   searchedLocations: string,
   index: number,
+  projectRoot?: string,
 ): { filePath: string; content: string } {
   assertSafeRuleReference(ref, index);
-  for (const root of roots) {
-    const filePath = ruleFilePath(root, ref);
-    const content = readRuleFile(root, filePath);
+  for (const lookupRoot of roots) {
+    const filePath = ruleFilePath(lookupRoot.path, ref);
+    const projectRuleRoot = lookupRoot.allowProjectSymlinks ? projectRoot : undefined;
+    const content = readRuleFile(lookupRoot.path, filePath, { projectRoot: projectRuleRoot });
     if (content !== undefined) {
       return { filePath, content };
     }
@@ -144,20 +182,32 @@ export function resolveWorkflowWideRules(
 
   const roots = resourceRoot === undefined
     ? [
-      ...(workflowDir === undefined ? [] : [workflowDir]),
-      getProjectWorkflowsDir(projectCwd),
-      getGlobalWorkflowsDir(),
-      getBuiltinWorkflowsDir(language),
+      ...(workflowDir === undefined ? [] : [{
+        path: join(workflowDir, 'rules'),
+        allowProjectSymlinks: isPathSafe(projectCwd, workflowDir),
+      }]),
+      { path: join(getProjectWorkflowsDir(projectCwd), 'rules'), allowProjectSymlinks: true },
+      { path: getProjectRulesDir(projectCwd), allowProjectSymlinks: true },
+      { path: join(getGlobalWorkflowsDir(), 'rules'), allowProjectSymlinks: false },
+      { path: join(getBuiltinWorkflowsDir(language), 'rules'), allowProjectSymlinks: false },
     ]
-    : [join(resourceRoot, 'workflows')];
-  const uniqueRoots = roots.filter((root, index, all) => all.indexOf(root) === index);
+    : [{ path: join(resourceRoot, 'workflows', 'rules'), allowProjectSymlinks: false }];
+  const uniqueRoots = roots.filter((root, index, all) => (
+    all.findIndex((candidate) => candidate.path === root.path) === index
+  ));
   const searchedLocations = resourceRoot === undefined
     ? 'in project, global, or builtin workflow rules'
-    : `in the isolated workflow rules under "${join(resourceRoot, 'workflows')}"`;
+    : `in the isolated workflow rules under "${join(resourceRoot, 'workflows', 'rules')}"`;
 
   return entries.map((entry, index) => {
     const normalized = normalizeRuleEntry(entry);
-    const resolved = resolveRuleFile(normalized.ref, uniqueRoots, searchedLocations, index);
+    const resolved = resolveRuleFile(
+      normalized.ref,
+      uniqueRoots,
+      searchedLocations,
+      index,
+      resourceRoot === undefined ? projectCwd : undefined,
+    );
     assertAllowedRuleContent(resolved.content, resolved.filePath, index);
     return {
       ref: normalized.ref,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { WorkflowConfigRawSchema, WorkflowStepRawSchema } from '../core/models/index.js';
@@ -2025,6 +2025,120 @@ steps:
       });
     } finally {
       rmSync(projectDir, { recursive: true, force: true });
+    }
+  });
+
+  it('project-local schema_ref は namespaced category symlink を解決できる', () => {
+    const projectDir = mkdtempSync(join(tmpdir(), 'takt-system-schema-namespaced-'));
+    const workflowDir = join(projectDir, '.takt', 'workflows');
+    const projectSchemasDir = join(projectDir, '.takt', 'schemas');
+    const linkedSchemasDir = join(projectDir, 'project-factory', 'schemas');
+    const workflowPath = join(workflowDir, 'namespaced.yaml');
+
+    mkdirSync(workflowDir, { recursive: true });
+    mkdirSync(projectSchemasDir, { recursive: true });
+    mkdirSync(linkedSchemasDir, { recursive: true });
+    writeFileSync(
+      join(linkedSchemasDir, 'review.json'),
+      JSON.stringify({ type: 'object', required: ['result'] }),
+      'utf-8',
+    );
+    symlinkSync(linkedSchemasDir, join(projectSchemasDir, 'pf'), 'dir');
+    writeFileSync(
+      workflowPath,
+      `name: namespaced
+max_steps: 1
+initial_step: review
+steps:
+  - name: review
+    instruction: Review
+    structured_output:
+      schema_ref: pf/review
+    rules:
+      - condition: done
+        next: COMPLETE
+`,
+      'utf-8',
+    );
+
+    try {
+      const normalized = loadWorkflowFromFile(workflowPath, projectDir);
+      const step = normalized.steps[0] as Record<string, unknown>;
+
+      expect(step.structuredOutput).toEqual({
+        schemaRef: 'pf/review',
+        schema: { type: 'object', required: ['result'] },
+      });
+    } finally {
+      rmSync(projectDir, { recursive: true, force: true });
+    }
+  });
+
+  it('project-local schema_ref rejects a category symlink outside the project', () => {
+    const projectDir = mkdtempSync(join(tmpdir(), 'takt-system-schema-external-'));
+    const workflowDir = join(projectDir, '.takt', 'workflows');
+    const projectSchemasDir = join(projectDir, '.takt', 'schemas');
+    const outsideSchemasDir = mkdtempSync(join(tmpdir(), 'takt-system-schema-outside-'));
+    const workflowPath = join(workflowDir, 'external.yaml');
+
+    mkdirSync(workflowDir, { recursive: true });
+    mkdirSync(projectSchemasDir, { recursive: true });
+    writeFileSync(join(outsideSchemasDir, 'secret.json'), JSON.stringify({ type: 'object' }), 'utf-8');
+    symlinkSync(outsideSchemasDir, join(projectSchemasDir, 'external'), 'dir');
+    writeFileSync(
+      workflowPath,
+      `name: external
+max_steps: 1
+initial_step: review
+steps:
+  - name: review
+    instruction: Review
+    structured_output:
+      schema_ref: external/secret
+`,
+      'utf-8',
+    );
+
+    try {
+      expect(() => loadWorkflowFromFile(workflowPath, projectDir)).toThrow(
+        /Schema must stay inside the project/,
+      );
+    } finally {
+      rmSync(projectDir, { recursive: true, force: true });
+      rmSync(outsideSchemasDir, { recursive: true, force: true });
+    }
+  });
+
+  it('project-local schema_ref rejects a config directory that escapes the project', () => {
+    const projectDir = mkdtempSync(join(tmpdir(), 'takt-system-schema-config-root-'));
+    const outsideConfigDir = mkdtempSync(join(tmpdir(), 'takt-system-schema-config-outside-'));
+    const outsideSchemasDir = join(outsideConfigDir, 'schemas');
+    const workflowPath = join(projectDir, 'external-config.yaml');
+
+    mkdirSync(outsideSchemasDir, { recursive: true });
+    writeFileSync(join(outsideSchemasDir, 'secret.json'), JSON.stringify({ type: 'object' }), 'utf-8');
+    symlinkSync(outsideConfigDir, join(projectDir, '.takt'), 'dir');
+    writeFileSync(
+      workflowPath,
+      `name: external-config
+max_steps: 1
+initial_step: review
+steps:
+  - name: review
+    instruction: Review
+    structured_output:
+      schema_ref: secret
+`,
+      'utf-8',
+    );
+
+    try {
+      expect(() => loadWorkflowFromFile(workflowPath, projectDir)).toThrow(
+        /Schema root must stay inside the project/,
+      );
+    } finally {
+      rmSync(projectDir, { recursive: true, force: true });
+      rmSync(outsideConfigDir, { recursive: true, force: true });
     }
   });
 

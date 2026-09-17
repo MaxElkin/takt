@@ -53,7 +53,7 @@ function resolveInputPath(input: string, baseDir: string): string {
 }
 
 function resolveNamedWorkflowTarget(name: string, projectDir: string): WorkflowDoctorTarget | undefined {
-  const match = findWorkflowInLookupDirs(name, getNamedWorkflowLookupDirs(projectDir));
+  const match = findWorkflowInLookupDirs(name, getNamedWorkflowLookupDirs(projectDir), projectDir);
   if (!match) {
     return undefined;
   }

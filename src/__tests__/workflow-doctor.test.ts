@@ -1905,4 +1905,27 @@ steps:
 
     expect(mockSuccess).toHaveBeenCalledWith(expect.stringContaining('named.yaml'));
   });
+
+  it('resolves named workflow targets through an in-project symlinked category', () => {
+    const linkedWorkflowsDir = join(projectDir, 'syncthing', 'docs', 'workflows');
+    mkdirSync(linkedWorkflowsDir, { recursive: true });
+    writeFileSync(join(linkedWorkflowsDir, 'review.yaml'), `name: review
+max_steps: 1
+initial_step: review
+    steps:
+  - name: review
+    rules:
+      - condition: done
+        next: COMPLETE
+`, 'utf-8');
+    mkdirSync(join(projectDir, '.takt', 'workflows'), { recursive: true });
+    symlinkSync(linkedWorkflowsDir, join(projectDir, '.takt', 'workflows', 'syncthing'), 'dir');
+
+    const [target] = resolveWorkflowDoctorTargets(['syncthing/review'], projectDir);
+
+    expect(target).toMatchObject({
+      filePath: join(projectDir, '.takt', 'workflows', 'syncthing', 'review.yaml'),
+      source: 'project',
+    });
+  });
 });

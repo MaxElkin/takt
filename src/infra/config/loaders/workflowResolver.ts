@@ -76,7 +76,7 @@ function loadWorkflowFromLookupDirs(
   parentTrustInfo?: WorkflowTrustInfo,
   resourceRoot?: string,
 ): WorkflowConfig | null {
-  const match = findWorkflowInLookupDirs(name, lookupDirs);
+  const match = findWorkflowInLookupDirs(name, lookupDirs, projectCwd);
   if (!match) {
     return null;
   }

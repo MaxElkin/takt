@@ -17,6 +17,13 @@ A workflow is a YAML file that defines a sequence of steps executed by AI agents
 - `~/.takt/workflows/` — User workflows (override builtins with the same name)
 - Use `takt eject <workflow>` to copy a builtin to `~/.takt/workflows/` for customization
 
+Project workflow lookup keeps the short name in task and YAML configuration while allowing
+category directories under `.takt/workflows/` to be symlinks. A named reference such as
+`syncthing/consult/review/review` is looked up lexically below the project workflow root, then
+its symlink target is accepted only when it resolves somewhere inside the same project. Symlinks
+that escape the project are rejected. This applies to runtime loading and to `workflow doctor`;
+path-based references still use their existing explicit-path rules.
+
 ## Workflow Categories
 
 To organize the workflow selection UI into categories, configure `workflow_categories`.
@@ -103,7 +110,7 @@ Section maps are optional. Facets can be referenced directly by bare name (e.g.,
 
 Declare rules that apply to every agent step in the workflow under `all_steps.rules`. Each entry is either a rule reference or an object with `ref` and the optional `position: before_instruction`. An omitted position places the rule after the automatic execution rules; `before_instruction` places it immediately before the step's `Instructions` section.
 
-Rule files are Markdown files named `<ref>.md` under `workflows/rules/`. They resolve in project `.takt/workflows/rules/`, then global `~/.takt/workflows/rules/`, then the bundled builtin directory. The applicability notice and rule heading are rendered once per prompt. These rules apply only to Phase 1 agent instructions, not output reports, status routing, or companion reviewers. A called workflow inherits its parent's rules additively before its own `all_steps.rules`. When parent and child rules have identical `ref`, `position`, and resolved content, the parent occurrence wins and the rule is applied only once. Rules sharing a `ref` but differing in position or content are not deduplicated.
+Rule files are Markdown files named `<ref>.md` under a rules root. Refs may be namespaced with slash-separated segments, so `syncthing/takt-step-context` resolves to `rules/syncthing/takt-step-context.md`. They resolve in project `.takt/workflows/rules/`, project-wide `.takt/rules/`, global `~/.takt/workflows/rules/`, then the bundled builtin directory. Project rule category directories may be symlinks when their real targets remain inside the project; each rules root itself must remain a real directory, and symlinks in global, builtin, package, or isolated rule roots remain rejected. The applicability notice and rule heading are rendered once per prompt. These rules apply only to Phase 1 agent instructions, not output reports, status routing, or companion reviewers. A called workflow inherits its parent's rules additively before its own `all_steps.rules`. When parent and child rules have identical `ref`, `position`, and resolved content, the parent occurrence wins and the rule is applied only once. Rules sharing a `ref` but differing in position or content are not deduplicated.
 
 Rule files must not contain the required-output heading or `{report:...}` references; invalid content fails workflow loading and identifies the referenced file. Omitting `all_steps` preserves the existing prompt. Future workflow-wide declarations belong under `all_steps`; unknown root-level keys remain invalid.
 
@@ -896,7 +903,7 @@ max_steps: infinite
 
 ### `schemas`
 
-A map from `structured_output.schema_ref` keys to structured-output schema names. Each name resolves to `<name>.json` in project `.takt/schemas/`, then `~/.takt/schemas/`, then the bundled `schemas/` directory. A `schema_ref` that is not in the map is used directly as the schema name.
+A map from `structured_output.schema_ref` keys to structured-output schema names. Each name resolves to `<name>.json` in project `.takt/schemas/`, then `~/.takt/schemas/`, then the bundled `schemas/` directory. Names may use slash-separated namespaces, such as `pf/consult-review`, which resolves to `schemas/pf/consult-review.json`. Project schema category directories may be symlinks when their real targets remain inside the project; the schema root itself must remain a real directory. A `schema_ref` that is not in the map is used directly as the schema name.
 
 ```yaml
 schemas:

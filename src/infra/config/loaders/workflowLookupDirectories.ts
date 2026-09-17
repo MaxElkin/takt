@@ -7,6 +7,7 @@ import {
   getProjectWorkflowsDir,
   isPathSafe,
 } from '../paths.js';
+import { isPathInside, lstatIfExists } from '../../../shared/utils/pathBoundary.js';
 import { listBuiltinWorkflowNamesForDir, type WorkflowSource } from './workflowDiscovery.js';
 import type { WorkflowTrustSource } from './workflowTrustSource.js';
 
@@ -22,16 +23,54 @@ export interface NamedWorkflowLookupDir {
   disabled?: string[];
 }
 
-export function resolveWorkflowFile(workflowsDir: string, name: string): string | null {
+export interface ResolveWorkflowFileOptions {
+  /**
+   * Project root whose in-project symlinks are trusted for named lookup.
+   * The lexical workflow-root boundary is still enforced first, so only
+   * symlink traversal can use this wider boundary.
+   */
+  projectRoot?: string;
+}
+
+export function resolveWorkflowFile(
+  workflowsDir: string,
+  name: string,
+  options?: ResolveWorkflowFileOptions,
+): string | null {
   const resolvedWorkflowsDir = resolve(workflowsDir);
+  const rootStats = lstatIfExists(resolvedWorkflowsDir);
+  if (
+    options?.projectRoot !== undefined
+    && (
+      rootStats === null
+      || rootStats.isSymbolicLink()
+      || !rootStats.isDirectory()
+      || !isPathSafe(options.projectRoot, resolvedWorkflowsDir)
+    )
+  ) {
+    return null;
+  }
+
   for (const ext of ['.yaml', '.yml']) {
     const filePath = resolve(workflowsDir, `${name}${ext}`);
-    if (!isPathSafe(resolvedWorkflowsDir, filePath)) {
+    // Reject traversal lexically before considering a symlink target. This
+    // keeps `..` from becoming an escape hatch when project-root symlinks are
+    // allowed below.
+    if (!isPathInside(resolvedWorkflowsDir, filePath)) {
       continue;
     }
-    if (existsSync(filePath)) {
+
+    const staysInsideWorkflowRoot = isPathSafe(resolvedWorkflowsDir, filePath);
+    const staysInsideTrustedProject = options?.projectRoot !== undefined
+      && isPathSafe(options.projectRoot, filePath);
+    if (!staysInsideWorkflowRoot && !staysInsideTrustedProject) {
+      continue;
+    }
+    if (options?.projectRoot === undefined && existsSync(filePath)) {
       return filePath;
     }
+    const fileStats = lstatIfExists(filePath);
+    if (fileStats !== null && !fileStats.isSymbolicLink() && fileStats.isFile()) return filePath;
   }
   return null;
 }
@@ -39,13 +78,16 @@ export function resolveWorkflowFile(workflowsDir: string, name: string): string 
 export function findWorkflowInLookupDirs(
   name: string,
   lookupDirs: NamedWorkflowLookupDir[],
+  projectRoot?: string,
 ): { filePath: string; source: WorkflowTrustSource } | null {
   for (const { dir, source, disabled } of lookupDirs) {
     if (source === 'builtin' && disabled?.includes(name)) {
       continue;
     }
 
-    const filePath = resolveWorkflowFile(dir, name);
+    const filePath = resolveWorkflowFile(dir, name, {
+      projectRoot: source === 'project' ? projectRoot : undefined,
+    });
     if (!filePath) {
       continue;
     }

@@ -7,14 +7,82 @@ import {
   getProjectSchemasDir,
   isPathSafe,
 } from '../paths.js';
+import { readRegularFileNoFollow } from '../../../shared/utils/private-file.js';
+import { isPathInside, lstatIfExists } from '../../../shared/utils/pathBoundary.js';
 
 const SAFE_SCHEMA_NAME_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/;
 
 function validateSchemaName(schemaName: string, field: string): string {
-  if (!SAFE_SCHEMA_NAME_PATTERN.test(schemaName)) {
-    throw new Error(`Invalid ${field} "${schemaName}": expected bare schema identifier`);
+  const segments = schemaName.split('/');
+  if (
+    schemaName.length === 0
+    || segments.some((segment) => !SAFE_SCHEMA_NAME_PATTERN.test(segment))
+  ) {
+    throw new Error(`Invalid ${field} "${schemaName}": expected schema identifier or namespaced schema reference`);
   }
   return schemaName;
+}
+
+interface SchemaLookupDir {
+  readonly path: string;
+  readonly allowProjectSymlinks: boolean;
+}
+
+function readSchemaFile(
+  root: string,
+  schemaPath: string,
+  projectRoot?: string,
+): string | undefined {
+  const rootStats = lstatIfExists(root);
+  if (
+    projectRoot !== undefined
+    && rootStats !== null
+    && (rootStats.isSymbolicLink() || !rootStats.isDirectory())
+  ) {
+    throw new Error(`Schema root must be a directory and must not be a symlink: ${root}`);
+  }
+
+  const resolvedRoot = resolve(root);
+  if (!isPathInside(resolvedRoot, schemaPath)) {
+    throw new Error(`Invalid schema path: ${schemaPath}`);
+  }
+
+  if (projectRoot !== undefined) {
+    if (!isPathSafe(projectRoot, resolvedRoot)) {
+      throw new Error(`Schema root must stay inside the project: ${root}`);
+    }
+    if (!isPathSafe(projectRoot, schemaPath)) {
+      throw new Error(`Schema must stay inside the project: ${schemaPath}`);
+    }
+    const stats = lstatIfExists(schemaPath);
+    if (stats === null) return undefined;
+    if (stats.isSymbolicLink() || !stats.isFile()) {
+      throw new Error(`Schema must be a regular file and must not be a symlink: ${schemaPath}`);
+    }
+    return readRegularFileNoFollow(schemaPath, stats).toString('utf-8');
+  }
+
+  if (!existsSync(schemaPath)) return undefined;
+  if (!isPathSafe(resolvedRoot, schemaPath)) {
+    throw new Error(`Invalid schema path: ${schemaPath}`);
+  }
+  return readFileSync(schemaPath, 'utf-8');
+}
+
+function resolveSchemaFile(
+  schemaName: string,
+  lookupDirs: readonly SchemaLookupDir[],
+  projectRoot: string,
+): { schemaPath: string; content: string } | undefined {
+  for (const lookupDir of lookupDirs) {
+    const schemaPath = resolve(lookupDir.path, `${schemaName}.json`);
+    const projectSchemaRoot = lookupDir.allowProjectSymlinks ? projectRoot : undefined;
+    const content = readSchemaFile(lookupDir.path, schemaPath, projectSchemaRoot);
+    if (content !== undefined) {
+      return { schemaPath, content };
+    }
+  }
+  return undefined;
 }
 
 interface StructuredOutputResolutionOptions {
@@ -33,30 +101,21 @@ export function resolveStructuredOutput(
   }
 
   const schemaName = validateSchemaName(workflowSchemas?.[schemaRef] ?? schemaRef, 'schema_ref');
-  const candidateDirs = options.resourceRoot === undefined
+  const candidateDirs: readonly SchemaLookupDir[] = options.resourceRoot === undefined
     ? [
-      getProjectSchemasDir(options.projectDir),
-      getGlobalSchemasDir(),
-      join(getResourcesDir(), 'schemas'),
+      { path: getProjectSchemasDir(options.projectDir), allowProjectSymlinks: true },
+      { path: getGlobalSchemasDir(), allowProjectSymlinks: false },
+      { path: join(getResourcesDir(), 'schemas'), allowProjectSymlinks: false },
     ]
-    : [join(options.resourceRoot, 'schemas')];
-  const schemaPath = candidateDirs
-    .map((dir) => resolve(dir, `${schemaName}.json`))
-    .find((candidate) => existsSync(candidate));
+    : [{ path: join(options.resourceRoot, 'schemas'), allowProjectSymlinks: false }];
+  const resolvedSchema = resolveSchemaFile(schemaName, candidateDirs, options.projectDir);
 
-  if (!schemaPath) {
+  if (!resolvedSchema) {
     throw new Error(`Structured output schema not found for ref "${schemaRef}"`);
-  }
-
-  const isAllowed = candidateDirs
-    .map((dir) => resolve(dir))
-    .some((dir) => isPathSafe(dir, schemaPath));
-  if (!isAllowed) {
-    throw new Error(`Invalid schema path for ref "${schemaRef}"`);
   }
 
   return {
     schemaRef,
-    schema: JSON.parse(readFileSync(schemaPath, 'utf-8')) as Record<string, unknown>,
+    schema: JSON.parse(resolvedSchema.content) as Record<string, unknown>,
   };
 }

@@ -10,6 +10,7 @@ The fork is now organized by extension area:
 | Area | Contents | Specification |
 | --- | --- | --- |
 | Workflows | `requires_approval`, `user_prompt_field`, and workflow-derived interactive input | [Workflow extensions](takt-fork-workflows.md) |
+| Resource loading | Namespaced project workflows, schemas, and workflow-wide rules, including safe project-internal category symlinks | [Project resource namespaces](#project-resource-namespaces) |
 | Commands | The `takt task` group: `add`, `list`, `tree`, `instruction`, `resume`, `restart`, `rewind`, `delete`, `config`, `prune`, the `{task_artifacts_dir}` placeholder and `current_task` it configures, and the blank-order task prompt; plus `takt workflow tree` on upstream's workflow group | [Command extensions](takt-fork-commands.md) |
 | Providers | Antigravity (`agy`), permission prompt, and provider router | [Provider extensions](takt-fork-providers.md) |
 | Logging | Duplicate-free `phase_start` prompt fields | [Session log fields](#session-log-fields) |
@@ -75,6 +76,29 @@ it fails quietly rather than loudly:
 
 Gate counts are deliberately not recorded here. They change with every test
 added, and a number that drifts is worse than no number — run the gate.
+
+## Project resource namespaces
+
+Project resources use one category namespace across the three workflow-facing
+roots:
+
+| Root | Namespaced reference | Resolved path |
+| --- | --- | --- |
+| `.takt/workflows/` | `syncthing/consult/consult` | `.takt/workflows/syncthing/consult/consult.yaml` |
+| `.takt/schemas/` | `pf/consult-review` | `.takt/schemas/pf/consult-review.json` |
+| `.takt/rules/` | `syncthing/takt-step-context` | `.takt/rules/syncthing/takt-step-context.md` |
+
+Each root must be a real directory. A project category directory may be a
+symlink to a target inside the project, which lets a repository keep authored
+workflows, schemas, and rules beside the project documentation while retaining
+short names in task records and YAML. Lookup checks both the lexical path and
+the resolved target; links that escape the project are rejected. The same
+contract is used by runtime loading and `takt workflow doctor`.
+
+Workflow-wide rules retain the older project lookup layer at
+`.takt/workflows/rules/` for compatibility. It is checked before the shared
+`.takt/rules/` root; new rules intended for reuse across workflows belong in the
+latter.
 
 ## Project resource sync
 

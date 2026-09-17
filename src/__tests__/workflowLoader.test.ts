@@ -619,6 +619,67 @@ steps:
     expect(workflow!.name).toBe('test-workflow');
   });
 
+  it('should resolve named workflows through an in-project symlinked category', () => {
+    const projectWorkflowsDir = join(tempDir, '.takt', 'workflows');
+    const linkedWorkflowsDir = join(tempDir, 'syncthing', 'docs', 'workflows');
+    mkdirSync(projectWorkflowsDir, { recursive: true });
+    mkdirSync(linkedWorkflowsDir, { recursive: true });
+    writeFileSync(join(linkedWorkflowsDir, 'review.yaml'), SAMPLE_WORKFLOW);
+    symlinkSync(linkedWorkflowsDir, join(projectWorkflowsDir, 'syncthing'), 'dir');
+
+    const workflow = loadWorkflowByIdentifier('syncthing/review', tempDir);
+
+    expect(workflow).not.toBeNull();
+    expect(workflow!.name).toBe('test-workflow');
+  });
+
+  it('should reject a named workflow symlink that escapes the project root', () => {
+    const projectWorkflowsDir = join(tempDir, '.takt', 'workflows');
+    const outsideWorkflowsDir = mkdtempSync(join(tmpdir(), 'takt-test-outside-workflows-'));
+    mkdirSync(projectWorkflowsDir, { recursive: true });
+    writeFileSync(join(outsideWorkflowsDir, 'review.yaml'), SAMPLE_WORKFLOW);
+    symlinkSync(outsideWorkflowsDir, join(projectWorkflowsDir, 'external'), 'dir');
+
+    expect(loadWorkflowByIdentifier('external/review', tempDir)).toBeNull();
+
+    rmSync(outsideWorkflowsDir, { recursive: true, force: true });
+  });
+
+  it('should reject a project workflow root symlink even when its target stays inside the project', () => {
+    const projectConfigDir = join(tempDir, '.takt');
+    const linkedWorkflowsDir = join(tempDir, 'shared-workflows');
+    mkdirSync(projectConfigDir, { recursive: true });
+    mkdirSync(linkedWorkflowsDir, { recursive: true });
+    writeFileSync(join(linkedWorkflowsDir, 'root-linked.yaml'), SAMPLE_WORKFLOW);
+    symlinkSync(linkedWorkflowsDir, join(projectConfigDir, 'workflows'), 'dir');
+
+    expect(loadWorkflowByIdentifier('root-linked', tempDir)).toBeNull();
+  });
+
+  it('should reject project workflow lookup when the config directory escapes the project', () => {
+    const outsideConfigDir = mkdtempSync(join(tmpdir(), 'takt-test-outside-config-'));
+    const outsideWorkflowsDir = join(outsideConfigDir, 'workflows');
+    mkdirSync(outsideWorkflowsDir, { recursive: true });
+    writeFileSync(join(outsideWorkflowsDir, 'outside-root.yaml'), SAMPLE_WORKFLOW);
+    symlinkSync(outsideConfigDir, join(tempDir, '.takt'), 'dir');
+
+    try {
+      expect(loadWorkflowByIdentifier('outside-root', tempDir)).toBeNull();
+    } finally {
+      rmSync(outsideConfigDir, { recursive: true, force: true });
+    }
+  });
+
+  it('should reject a symlink used as the final named workflow file', () => {
+    const projectWorkflowsDir = join(tempDir, '.takt', 'workflows');
+    const linkedWorkflow = join(tempDir, 'linked-workflow.yaml');
+    mkdirSync(projectWorkflowsDir, { recursive: true });
+    writeFileSync(linkedWorkflow, SAMPLE_WORKFLOW);
+    symlinkSync(linkedWorkflow, join(projectWorkflowsDir, 'final-link.yaml'));
+
+    expect(loadWorkflowByIdentifier('final-link', tempDir)).toBeNull();
+  });
+
   it('should reject callable subworkflow provider settings and point to runtime.yaml', () => {
     const projectWorkflowsDir = join(tempDir, '.takt', 'workflows');
     mkdirSync(projectWorkflowsDir, { recursive: true });
