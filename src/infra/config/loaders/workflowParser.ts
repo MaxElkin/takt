@@ -3,7 +3,7 @@
  */
 
 import { join } from 'node:path';
-import type { WorkflowArpeggioConfig, WorkflowCommandGatesConfig, WorkflowMcpServersConfig, WorkflowOverrides, WorkflowRuntimePrepareConfig } from '../../../core/models/config-types.js';
+import type { WorkflowArpeggioConfig, WorkflowCommandGatesConfig, WorkflowDefaultsConfig, WorkflowMcpServersConfig, WorkflowOverrides, WorkflowRuntimePrepareConfig } from '../../../core/models/config-types.js';
 import { WorkflowConfigRawSchema } from '../../../core/models/index.js';
 import type {
   WorkflowCallArgValue,
@@ -105,6 +105,7 @@ interface NormalizeWorkflowConfigOptions {
   workflowCommandGatesPolicy?: WorkflowCommandGatesConfig,
   workflowPath?: string,
   workflowTrustInfo?: WorkflowTrustInfo,
+  workflowDefaults?: WorkflowDefaultsConfig,
 }
 
 export function normalizeWorkflowConfig(
@@ -125,11 +126,13 @@ export function normalizeWorkflowConfig(
     workflowCommandGatesPolicy,
     workflowPath,
     workflowTrustInfo,
+    workflowDefaults,
   } = options;
   const parsedRaw = parseWorkflowRaw(raw, {
     context,
     workflowPath: workflowPath ?? workflowDir,
     trustInfo: workflowTrustInfo,
+    workflowDefaults,
   });
   try {
   const callableDiscovery = callableArgMode === 'discovery'

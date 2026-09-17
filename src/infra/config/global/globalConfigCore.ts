@@ -220,6 +220,10 @@ export class GlobalConfigManager {
       autoFetch: parsed.auto_fetch,
       baseBranch: parsed.base_branch,
       workflowOverrides: normalizeWorkflowOverrides(parsed.workflow_overrides),
+      workflowDefaults: parsed.workflow_defaults ? {
+        callable: parsed.workflow_defaults.callable,
+        visibility: parsed.workflow_defaults.visibility,
+      } : undefined,
       // Project-local keys (also accepted in global config)
       pipeline: normalizePipelineConfig(
         parsed.pipeline as { default_branch_prefix?: string; commit_message_template?: string; pr_body_template?: string } | undefined,

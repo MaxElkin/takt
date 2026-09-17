@@ -4,6 +4,8 @@ import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { getProjectWorkflowsDir, getRepertoireDir, isPathSafe } from '../paths.js';
 import { resolveWorkflowConfigValue } from '../resolveWorkflowConfigValue.js';
+import { loadGlobalConfig } from '../global/globalConfig.js';
+import { loadProjectConfig } from '../project/projectConfig.js';
 import { validateDoctorGraph } from './workflowDoctorGraph.js';
 import { validateWorkflowReferences } from './workflowDoctorRefValidator.js';
 import type { WorkflowDiagnostic, WorkflowDoctorReport } from './workflowDoctorTypes.js';
@@ -31,6 +33,7 @@ import {
 } from './resource-resolver.js';
 import { buildResolvedFacetPoolDependencies, compileFacetPool, type FacetPoolCompilationInput } from './facetPoolCompiler.js';
 import type { WorkflowConfig } from '../../../core/models/types.js';
+import { mergeWorkflowDefaults } from './workflowDefaults.js';
 
 export type { WorkflowDiagnostic, WorkflowDoctorReport } from './workflowDoctorTypes.js';
 
@@ -155,6 +158,12 @@ function buildContext(projectDir: string, filePath: string): FacetResolutionCont
   };
 }
 
+function loadWorkflowDefaults(projectDir: string) {
+  const projectConfig = loadProjectConfig(projectDir);
+  const globalConfig = loadGlobalConfig();
+  return mergeWorkflowDefaults(projectConfig.workflowDefaults, globalConfig.workflowDefaults);
+}
+
 function buildSections(raw: RawWorkflow, context: FacetResolutionContext): WorkflowSections {
   const workflowDir = context.workflowDir;
   if (!workflowDir) {
@@ -245,6 +254,7 @@ export function inspectWorkflowFile(
         lookupCwd: options?.lookupCwd,
         source: options?.source,
       }),
+      workflowDefaults: loadWorkflowDefaults(projectDir),
     });
     const lookupCwd = options?.lookupCwd ?? projectDir;
     let workflow: WorkflowConfig | undefined;

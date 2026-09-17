@@ -26,6 +26,7 @@ import type { WorkflowCallArgResolutionPolicy } from './workflowCallableArgResol
 import { resolveWorkflowTrustInfo, type WorkflowTrustInfo } from './workflowTrustSource.js';
 import { buildConfiguredCompanionLookupDirs } from './companionLookupDirectories.js';
 import { loadCompanionDefinition } from './companionDefinitionLoader.js';
+import { mergeWorkflowDefaults } from './workflowDefaults.js';
 
 interface LoadWorkflowFromFileOptions {
   trustInfo?: WorkflowTrustInfo;
@@ -102,6 +103,10 @@ function loadWorkflowFromFileInternal(
       ),
       workflowPath: canonicalFilePath,
       workflowTrustInfo: trustInfo,
+      workflowDefaults: mergeWorkflowDefaults(
+        projectConfig.workflowDefaults,
+        globalConfig.workflowDefaults,
+      ),
     },
   );
   const companionNames = new Set<string>();

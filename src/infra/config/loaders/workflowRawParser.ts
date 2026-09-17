@@ -12,6 +12,9 @@ import {
   findFragmentProvenanceForStep,
 } from './workflowStepFragmentProvenance.js';
 import type { WorkflowTrustInfo } from './workflowTrustSource.js';
+import type { WorkflowDefaultsConfig } from '../../../core/models/config-types.js';
+import { applyWorkflowDefaults } from './workflowDefaults.js';
+import { applyImplicitSequentialTransitions } from './workflowImplicitTransitions.js';
 import { getWorkflowConfigErrorPath } from '../../../core/workflow/workflow-config-error.js';
 import {
   formatWorkflowStepFragmentErrorContext,
@@ -35,10 +38,15 @@ export interface WorkflowRawParserOptions {
   context?: FacetResolutionContext;
   workflowPath: string;
   trustInfo?: WorkflowTrustInfo;
+  workflowDefaults?: WorkflowDefaultsConfig;
 }
 
 export function parseWorkflowRaw(raw: unknown, options: WorkflowRawParserOptions): ReturnType<typeof WorkflowConfigRawSchema.parse> {
-  const resolved = resolveWorkflowStepFragments(raw, options);
+  const fragmentResolved = resolveWorkflowStepFragments(applyWorkflowDefaults(raw, options.workflowDefaults), options);
+  const resolved = {
+    ...fragmentResolved,
+    raw: applyImplicitSequentialTransitions(fragmentResolved.raw),
+  };
   try {
     const parsed = WorkflowConfigRawSchema.parse(resolved.raw);
     fragmentContextByRawWorkflow.set(parsed, {

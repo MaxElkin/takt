@@ -1509,6 +1509,48 @@ steps:
     expect((workflow!.subworkflow as Record<string, unknown>)?.visibility).toBe('internal');
   });
 
+  it('should apply configured workflow subworkflow defaults while allowing explicit roots', () => {
+    const projectTaktDir = join(tempDir, '.takt');
+    const projectWorkflowsDir = join(projectTaktDir, 'workflows');
+    mkdirSync(projectWorkflowsDir, { recursive: true });
+    writeFileSync(join(projectTaktDir, 'config.yaml'), `workflow_defaults:
+  callable: true
+  visibility: internal
+`, 'utf-8');
+    writeFileSync(join(projectWorkflowsDir, 'implicit-child.yaml'), `name: implicit-child
+initial_step: review
+max_steps: 1
+steps:
+  - name: review
+    persona: reviewer
+    instruction: "Review"
+    rules:
+      - condition: done
+        next: COMPLETE
+`, 'utf-8');
+    writeFileSync(join(projectWorkflowsDir, 'explicit-root.yaml'), `name: explicit-root
+subworkflow:
+  callable: false
+initial_step: review
+max_steps: 1
+steps:
+  - name: review
+    persona: reviewer
+    instruction: "Review"
+    rules:
+      - condition: done
+        next: COMPLETE
+`, 'utf-8');
+
+    const implicit = loadWorkflowByIdentifier('implicit-child', tempDir);
+    const explicit = loadWorkflowByIdentifier('explicit-root', tempDir);
+
+    expect(implicit?.subworkflow).toEqual({ callable: true, visibility: 'internal' });
+    expect(explicit?.subworkflow).toEqual({ callable: false });
+    expect(listWorkflows(tempDir)).toContain('explicit-root');
+    expect(listWorkflows(tempDir)).not.toContain('implicit-child');
+  });
+
   it('should warn when visibility: internal is declared without callable: true', () => {
     const projectWorkflowsDir = join(tempDir, '.takt', 'workflows');
     mkdirSync(projectWorkflowsDir, { recursive: true });

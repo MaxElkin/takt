@@ -210,6 +210,12 @@ export function serializeGlobalConfig(config: GlobalConfig): Record<string, unkn
   if (denormalizedWorkflowOverrides) {
     raw.workflow_overrides = denormalizedWorkflowOverrides;
   }
+  if (config.workflowDefaults) {
+    raw.workflow_defaults = {
+      ...(config.workflowDefaults.callable === undefined ? {} : { callable: config.workflowDefaults.callable }),
+      ...(config.workflowDefaults.visibility === undefined ? {} : { visibility: config.workflowDefaults.visibility }),
+    };
+  }
   // Project-local keys (also accepted in global config)
   if (config.pipeline) {
     const pipelineRaw: Record<string, unknown> = {};

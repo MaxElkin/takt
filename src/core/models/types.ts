@@ -166,5 +166,6 @@ export type {
   FormalSpecSetting,
   AssistantConfig,
   GlobalAssistantConfig,
+  WorkflowDefaultsConfig,
   ProjectConfig,
 } from './config-types.js';

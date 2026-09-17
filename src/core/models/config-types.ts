@@ -183,6 +183,12 @@ export interface WorkflowOverrides {
   personas?: Record<string, StepQualityGatesOverride>;
 }
 
+/** Defaults for workflow-level subworkflow metadata when a workflow omits it. */
+export interface WorkflowDefaultsConfig {
+  callable?: boolean;
+  visibility?: 'internal';
+}
+
 /** Custom agent configuration */
 export interface CustomAgentConfig {
   name: string;
@@ -382,6 +388,8 @@ export interface ProjectConfig {
   providerProfiles?: ProviderPermissionProfiles;
   /** Workflow-level overrides (quality_gates, etc.) */
   workflowOverrides?: WorkflowOverrides;
+  /** Defaults applied to workflow subworkflow metadata. */
+  workflowDefaults?: WorkflowDefaultsConfig;
   /** Runtime environment configuration (project-level override) */
   runtime?: WorkflowRuntimeConfig;
   /** Workflow-level runtime.prepare policy */

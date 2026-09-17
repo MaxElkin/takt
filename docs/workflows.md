@@ -251,6 +251,12 @@ rules:
 
 Rules are evaluated in YAML order. The first matching rule is selected; no rule-type priority or fallback transition applies. If no rule matches, the workflow aborts with `rule_no_match`.
 
+For a top-level step, omitting `rules` is a shorthand for one `COMPLETE`
+transition to the next step in YAML order. The final top-level step implicitly
+transitions to `COMPLETE`. This applies to agent, `workflow_call`, `system`, and
+composite steps; parallel sub-steps and step-fragment callers remain explicit.
+Use `rules: []` when a top-level step is intentionally not routable.
+
 ### Special `next` Values
 
 - `COMPLETE` — End workflow successfully
@@ -1008,6 +1014,12 @@ subworkflow:
       type: workflow_ref
       default: peer-review-suite-base
 ```
+
+Projects may configure `workflow_defaults` in `.takt/config.yaml` or
+`~/.takt/config.yaml` to supply omitted subworkflow metadata. For example,
+`workflow_defaults: { callable: true, visibility: internal }` makes workflows
+callable and hidden by default; standalone root workflows must explicitly opt
+out with `subworkflow: { callable: false }`.
 
 Builtin callable workflows should omit `max_steps` because the root workflow owns the budget for the complete call tree. Keep `max_steps` on the standalone root wrapper when the shared implementation also needs a direct entry point; the callable child is intended to be entered through `workflow_call`.
 

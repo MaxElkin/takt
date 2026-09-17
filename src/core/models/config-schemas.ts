@@ -33,6 +33,12 @@ export const WorkflowOverridesSchema = z.object({
   personas: z.record(z.string(), StepQualityGatesOverrideSchema).optional(),
 }).optional();
 
+/** Defaults applied to workflow-level subworkflow metadata when omitted. */
+export const WorkflowDefaultsSchema = z.object({
+  callable: z.boolean().optional(),
+  visibility: z.enum(['internal']).optional(),
+}).strict().optional();
+
 export const WorkflowRuntimePrepareConfigSchema = z.object({
   custom_scripts: z.boolean().optional(),
 }).strict();
@@ -149,6 +155,7 @@ const ProjectConfigObjectBaseSchema = z.object({
   ignore_exceed: z.boolean().optional(),
   base_branch: z.string().optional(),
   workflow_overrides: WorkflowOverridesSchema,
+  workflow_defaults: WorkflowDefaultsSchema,
   vcs_provider: z.enum(VCS_PROVIDER_TYPES).optional(),
   submodules: z.union([
     z.string().refine((value) => value.trim().toLowerCase() === 'all', {

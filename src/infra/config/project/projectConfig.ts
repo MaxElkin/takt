@@ -124,6 +124,7 @@ export function loadProjectConfig(projectDir: string): ProjectConfig {
     ignore_exceed,
     sync_conflict_resolver,
     observability,
+    workflow_defaults,
   } = parsedConfigResult;
   const projectProviderOptionsPolicy = {
     baseUrlTrust: 'local-loopback-only' as const,
@@ -229,6 +230,10 @@ export function loadProjectConfig(projectDir: string): ProjectConfig {
       }> | undefined,
     ),
     workflowOverrides: normalizeWorkflowOverrides(parsedConfigResult.workflow_overrides),
+    workflowDefaults: workflow_defaults ? {
+      callable: workflow_defaults.callable,
+      visibility: workflow_defaults.visibility,
+    } : undefined,
     runtime: normalizeRuntime(runtime),
     workflowRuntimePrepare: normalizeWorkflowRuntimePreparePolicy(parsedConfigResult.workflow_runtime_prepare),
     workflowCommandGates: normalizeWorkflowCommandGatesPolicy(parsedConfigResult.workflow_command_gates),
@@ -367,6 +372,16 @@ export function saveProjectConfig(projectDir: string, config: ProjectConfig): vo
     savePayload.workflow_overrides = rawWorkflowOverrides;
   }
   delete savePayload.workflowOverrides;
+
+  if (config.workflowDefaults) {
+    savePayload.workflow_defaults = {
+      ...(config.workflowDefaults.callable === undefined ? {} : { callable: config.workflowDefaults.callable }),
+      ...(config.workflowDefaults.visibility === undefined ? {} : { visibility: config.workflowDefaults.visibility }),
+    };
+  } else {
+    delete savePayload.workflow_defaults;
+  }
+  delete savePayload.workflowDefaults;
 
   const normalizedRuntime = normalizeRuntime(config.runtime);
   if (normalizedRuntime) {
